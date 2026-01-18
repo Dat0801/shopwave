@@ -4,7 +4,7 @@ import Button from '@/Components/Button.vue';
 import Input from '@/Components/Input.vue';
 import InputError from '@/Components/InputError.vue';
 import Modal from '@/Components/Modal.vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, Head } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -138,6 +138,7 @@ const destroyCategory = (category) => {
 
 <template>
     <AuthenticatedLayout>
+        <Head title="Admin - Categories" />
         <template #header>
             <div
                 class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
@@ -333,7 +334,7 @@ const destroyCategory = (category) => {
                         </h2>
                         <button
                             type="button"
-                            class="text-sm text-gray-400 hover:text-gray-600"
+                            class="text-sm text-gray-500 hover:text-gray-900"
                             @click="closeCreateModal"
                         >
                             Close
@@ -420,7 +421,7 @@ const destroyCategory = (category) => {
                         </h2>
                         <button
                             type="button"
-                            class="text-sm text-gray-400 hover:text-gray-600"
+                            class="text-sm text-gray-500 hover:text-gray-900"
                             @click="closeEditModal"
                         >
                             Close

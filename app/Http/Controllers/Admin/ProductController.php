@@ -21,15 +21,21 @@ class ProductController extends Controller
     public function index(Request $request): Response
     {
         $products = $this->productService->paginatedWithCategory(
-            $request->string('search'),
-            10
+            $request->filled('search') ? $request->string('search')->toString() : null,
+            10,
+            $request->filled('category_id') ? $request->integer('category_id') : null,
+            $request->filled('status') ? $request->string('status')->toString() : null,
+            $request->filled('stock') ? $request->string('stock')->toString() : null
         );
 
         return Inertia::render('Admin/Products/Index', [
             'products' => $products,
             'categories' => $this->productService->categoriesForSelect(),
             'filters' => [
-                'search' => $request->string('search'),
+                'search' => $request->string('search')->toString(),
+                'category_id' => $request->string('category_id')->toString(),
+                'status' => $request->string('status')->toString(),
+                'stock' => $request->string('stock')->toString(),
             ],
         ]);
     }
@@ -55,4 +61,3 @@ class ProductController extends Controller
         return redirect()->back()->with('success', 'Product deleted.');
     }
 }
-

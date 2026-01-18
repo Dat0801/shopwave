@@ -4,7 +4,7 @@ import Button from '@/Components/Button.vue';
 import Input from '@/Components/Input.vue';
 import InputError from '@/Components/InputError.vue';
 import Modal from '@/Components/Modal.vue';
-import { useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
@@ -15,6 +15,9 @@ const props = defineProps({
 
 const filterForm = useForm({
     search: props.filters?.search || '',
+    category_id: props.filters?.category_id || '',
+    status: props.filters?.status || '',
+    stock: props.filters?.stock || '',
 });
 
 const createForm = useForm({
@@ -125,6 +128,7 @@ const destroyProduct = (product) => {
 
 <template>
     <AuthenticatedLayout>
+        <Head title="Admin - Products" />
         <template #header>
             <div
                 class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
@@ -139,19 +143,86 @@ const destroyProduct = (product) => {
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <form
-                        class="flex items-center gap-2"
+                        class="flex flex-wrap items-end gap-2"
                         @submit.prevent="submitFilters"
                     >
-                        <div class="w-48">
+                        <div class="w-full sm:w-40">
                             <Input
                                 v-model="filterForm.search"
                                 type="search"
                                 placeholder="Search"
                             />
                         </div>
-                        <Button type="submit">
-                            Filter
-                        </Button>
+                        <div class="w-full sm:w-40">
+                            <select
+                                v-model="filterForm.category_id"
+                                class="block w-full rounded-md border-gray-300 bg-white py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">
+                                    All categories
+                                </option>
+                                <option
+                                    v-for="category in categories"
+                                    :key="category.id"
+                                    :value="category.id"
+                                >
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="w-full sm:w-32">
+                            <select
+                                v-model="filterForm.status"
+                                class="block w-full rounded-md border-gray-300 bg-white py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">
+                                    All status
+                                </option>
+                                <option value="active">
+                                    Active
+                                </option>
+                                <option value="inactive">
+                                    Inactive
+                                </option>
+                            </select>
+                        </div>
+                        <div class="w-full sm:w-36">
+                            <select
+                                v-model="filterForm.stock"
+                                class="block w-full rounded-md border-gray-300 bg-white py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">
+                                    All stock
+                                </option>
+                                <option value="in">
+                                    In stock
+                                </option>
+                                <option value="low">
+                                    Low stock (1–5)
+                                </option>
+                                <option value="out">
+                                    Out of stock
+                                </option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Button type="submit">
+                                Filter
+                            </Button>
+                            <button
+                                type="button"
+                                class="text-xs text-gray-500 hover:text-gray-900"
+                                @click="
+                                    filterForm.search = '';
+                                    filterForm.category_id = '';
+                                    filterForm.status = '';
+                                    filterForm.stock = '';
+                                    submitFilters();
+                                "
+                            >
+                                Clear
+                            </button>
+                        </div>
                     </form>
                     <Button
                         type="button"
@@ -317,7 +388,7 @@ const destroyProduct = (product) => {
                     </h2>
                     <button
                         type="button"
-                        class="text-sm text-gray-400 hover:text-gray-600"
+                        class="text-sm text-gray-500 hover:text-gray-900"
                         @click="closeCreateModal"
                     >
                         Close
@@ -462,7 +533,7 @@ const destroyProduct = (product) => {
                     </h2>
                     <button
                         type="button"
-                        class="text-sm text-gray-400 hover:text-gray-600"
+                        class="text-sm text-gray-500 hover:text-gray-900"
                         @click="closeEditModal"
                     >
                         Close

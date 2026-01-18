@@ -15,12 +15,16 @@ class ProductController extends Controller
     {
         $products = Product::with('category')
             ->where('status', true)
-            ->when($request->string('category'), function ($query, $slug) {
+            ->when($request->filled('category'), function ($query) use ($request) {
+                $slug = $request->string('category')->toString();
+
                 $query->whereHas('category', function ($categoryQuery) use ($slug) {
                     $categoryQuery->where('slug', $slug);
                 });
             })
-            ->when($request->string('search'), function ($query, $search) {
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+
                 $query->where('name', 'like', '%'.$search.'%');
             })
             ->latest()
@@ -33,8 +37,8 @@ class ProductController extends Controller
             'products' => $products,
             'categories' => $categories,
             'filters' => [
-                'search' => $request->string('search'),
-                'category' => $request->string('category'),
+                'search' => $request->string('search')->toString(),
+                'category' => $request->string('category')->toString(),
             ],
         ]);
     }
@@ -48,4 +52,3 @@ class ProductController extends Controller
         ]);
     }
 }
-

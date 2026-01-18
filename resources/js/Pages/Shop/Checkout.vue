@@ -1,7 +1,7 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import Button from '@/Components/Button.vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     items: Array,
@@ -17,6 +17,7 @@ const submit = () => {
 
 <template>
     <ShopLayout>
+        <Head title="Checkout" />
         <div class="mb-6 flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-gray-900">Checkout</h1>
             <p class="text-sm text-gray-500">
@@ -87,4 +88,3 @@ const submit = () => {
         </div>
     </ShopLayout>
 </template>
-

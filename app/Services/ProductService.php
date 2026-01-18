@@ -9,11 +9,32 @@ use Illuminate\Http\UploadedFile;
 
 class ProductService
 {
-    public function paginatedWithCategory(?string $search = null, int $perPage = 12): LengthAwarePaginator
+    public function paginatedWithCategory(
+        ?string $search = null,
+        int $perPage = 12,
+        ?int $categoryId = null,
+        ?string $status = null,
+        ?string $stock = null
+    ): LengthAwarePaginator
     {
         return Product::with('category')
             ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', '%'.$search.'%');
+            })
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->when(! is_null($status), function ($query) use ($status) {
+                $query->where('status', $status === 'active');
+            })
+            ->when($stock, function ($query) use ($stock) {
+                if ($stock === 'out') {
+                    $query->where('stock', '=', 0);
+                } elseif ($stock === 'low') {
+                    $query->whereBetween('stock', [1, 5]);
+                } elseif ($stock === 'in') {
+                    $query->where('stock', '>', 0);
+                }
             })
             ->latest()
             ->paginate($perPage)
@@ -54,4 +75,3 @@ class ProductService
         return Category::orderBy('name')->get(['id', 'name']);
     }
 }
-

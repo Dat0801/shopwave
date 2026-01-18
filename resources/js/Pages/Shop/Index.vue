@@ -2,7 +2,7 @@
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import Button from '@/Components/Button.vue';
 import Input from '@/Components/Input.vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -29,6 +29,7 @@ const submitFilters = () => {
 
 <template>
     <ShopLayout>
+        <Head title="Shop - Products" />
         <section
             class="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
         >
@@ -83,7 +84,7 @@ const submitFilters = () => {
                     <button
                         v-if="hasFilters"
                         type="button"
-                        class="text-sm text-gray-600 hover:text-gray-900"
+                        class="text-sm text-gray-500 hover:text-gray-900"
                         @click="
                             form.search = '';
                             form.category = '';

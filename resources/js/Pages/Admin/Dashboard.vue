@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-
+import { Head } from '@inertiajs/vue3';
 const props = defineProps({
     stats: Object,
     charts: Object,
@@ -24,6 +24,7 @@ const averageOrderValue = computed(() => {
 
 <template>
     <AuthenticatedLayout>
+        <Head title="Admin - Dashboard" />
         <template #header>
             <div
                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"

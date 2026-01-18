@@ -1,14 +1,32 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Link } from '@inertiajs/vue3';
+import Button from '@/Components/Button.vue';
+import Input from '@/Components/Input.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     orders: Object,
+    filters: Object,
 });
+
+const filterForm = useForm({
+    status: props.filters?.status || '',
+    from: props.filters?.from || '',
+    to: props.filters?.to || '',
+});
+
+const submitFilters = () => {
+    filterForm.get(route('admin.orders.index'), {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['orders', 'filters'],
+    });
+};
 </script>
 
 <template>
     <AuthenticatedLayout>
+        <Head title="Admin - Orders" />
         <template #header>
             <div
                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
@@ -26,6 +44,80 @@ const props = defineProps({
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div class="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                    <div class="flex flex-wrap items-end gap-3">
+                        <div class="w-full sm:w-48">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">
+                                Status
+                            </label>
+                            <select
+                                v-model="filterForm.status"
+                                class="block w-full rounded-md border-gray-300 bg-white py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">
+                                    All statuses
+                                </option>
+                                <option value="pending">
+                                    Pending
+                                </option>
+                                <option value="processing">
+                                    Processing
+                                </option>
+                                <option value="paid">
+                                    Paid
+                                </option>
+                                <option value="shipped">
+                                    Shipped
+                                </option>
+                                <option value="completed">
+                                    Completed
+                                </option>
+                                <option value="cancelled">
+                                    Cancelled
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="w-full sm:w-40">
+                            <Input
+                                v-model="filterForm.from"
+                                type="date"
+                                label="From"
+                            />
+                        </div>
+
+                        <div class="w-full sm:w-40">
+                            <Input
+                                v-model="filterForm.to"
+                                type="date"
+                                label="To"
+                            />
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                class="px-4"
+                                @click="submitFilters"
+                            >
+                                Apply
+                            </Button>
+                            <button
+                                type="button"
+                                class="text-xs text-gray-500 hover:text-gray-900"
+                                @click="
+                                    filterForm.status = '';
+                                    filterForm.from = '';
+                                    filterForm.to = '';
+                                    submitFilters();
+                                "
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div
                     v-if="orders.data.length"
                     class="space-y-4"
