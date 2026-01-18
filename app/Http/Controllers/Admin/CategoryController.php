@@ -16,6 +16,7 @@ class CategoryController extends Controller
     public function index(Request $request): Response
     {
         $categories = Category::query()
+            ->with('parent')
             ->when($request->string('search'), function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
             })
@@ -25,6 +26,7 @@ class CategoryController extends Controller
 
         return Inertia::render('Admin/Categories/Index', [
             'categories' => $categories,
+            'allCategories' => Category::orderBy('name')->get(['id', 'name', 'parent_id']),
             'filters' => [
                 'search' => $request->string('search'),
             ],
@@ -52,4 +54,3 @@ class CategoryController extends Controller
         return redirect()->back()->with('success', 'Category deleted.');
     }
 }
-

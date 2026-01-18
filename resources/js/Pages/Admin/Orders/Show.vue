@@ -21,15 +21,24 @@ const submit = () => {
 <template>
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-semibold text-gray-800">
-                Order #{{ order.id }}
-            </h1>
+            <div
+                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-900">
+                        Order #{{ order.id }}
+                    </h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Order details and status.
+                    </p>
+                </div>
+            </div>
         </template>
 
         <div class="py-8">
             <div class="mx-auto max-w-4xl space-y-6 sm:px-6 lg:px-8">
-                <section class="rounded-lg bg-white p-4 shadow-sm">
-                    <div class="flex items-center justify-between">
+                <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <p class="text-sm font-semibold text-gray-900">
                                 {{ order.user?.name }}
@@ -38,18 +47,28 @@ const submit = () => {
                                 {{ order.user?.email }}
                             </p>
                         </div>
-                        <div class="text-right">
+                        <div class="flex flex-col items-start gap-2 text-right sm:items-end">
                             <p class="text-sm font-semibold text-gray-900">
                                 ${{ order.total_price }}
                             </p>
-                            <p class="mt-1 text-xs text-gray-500">
+                            <p class="text-xs text-gray-500">
                                 {{ new Date(order.created_at).toLocaleString() }}
                             </p>
+                            <span
+                                class="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                :class="order.status === 'completed' || order.status === 'paid'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : order.status === 'cancelled'
+                                        ? 'bg-rose-50 text-rose-700'
+                                        : 'bg-gray-100 text-gray-700'"
+                            >
+                                {{ order.status }}
+                            </span>
                         </div>
                     </div>
                 </section>
 
-                <section class="rounded-lg bg-white p-4 shadow-sm">
+                <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
                     <h2 class="mb-3 text-sm font-semibold text-gray-800">
                         Items
                     </h2>
@@ -57,7 +76,7 @@ const submit = () => {
                         <li
                             v-for="item in order.items"
                             :key="item.id"
-                            class="flex items-center justify-between"
+                            class="flex items-center justify-between gap-3"
                         >
                             <span>
                                 {{ item.product?.name }} × {{ item.quantity }}
@@ -69,16 +88,16 @@ const submit = () => {
                     </ul>
                 </section>
 
-                <section class="rounded-lg bg-white p-4 shadow-sm">
+                <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
                     <h2 class="mb-3 text-sm font-semibold text-gray-800">
                         Update status
                     </h2>
 
                     <form
-                        class="flex items-center gap-3"
+                        class="flex flex-col gap-4 sm:flex-row sm:items-center"
                         @submit.prevent="submit"
                     >
-                        <div class="w-48">
+                        <div class="w-full sm:w-64">
                             <Input
                                 v-model="form.status"
                                 placeholder="Status"
@@ -100,4 +119,3 @@ const submit = () => {
         </div>
     </AuthenticatedLayout>
 </template>
-
