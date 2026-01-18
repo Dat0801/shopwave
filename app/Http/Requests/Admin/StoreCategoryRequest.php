@@ -6,6 +6,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCategoryRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'parent_id' => $this->parent_id ?: null,
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user() && $this->user()->role === 'admin';
@@ -17,7 +24,7 @@ class StoreCategoryRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:categories,slug'],
             'status' => ['required', 'boolean'],
+            'parent_id' => ['nullable', 'exists:categories,id'],
         ];
     }
 }
-
