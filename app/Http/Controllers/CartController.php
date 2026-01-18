@@ -46,6 +46,20 @@ class CartController extends Controller
 
         $quantity = (int) $request->input('quantity', 1);
 
+        if ($product->stock <= 0) {
+            return redirect()->back()->with('error', 'This product is out of stock.');
+        }
+
+        $currentQuantity = $cart[$product->id]['quantity'] ?? 0;
+        $desiredQuantity = $currentQuantity + $quantity;
+
+        if ($desiredQuantity > $product->stock) {
+            return redirect()->back()->with(
+                'error',
+                'Not enough stock for '.$product->name.'. Only '.$product->stock.' left.'
+            );
+        }
+
         if (isset($cart[$product->id])) {
             $cart[$product->id]['quantity'] += $quantity;
         } else {
@@ -73,10 +87,30 @@ class CartController extends Controller
 
         $cart = $this->cart($request);
 
-        if (isset($cart[$product->id])) {
-            $cart[$product->id]['quantity'] = (int) $request->input('quantity');
-            $this->saveCart($request, $cart);
+        if (! isset($cart[$product->id])) {
+            return redirect()->back()->with('error', 'This item is not in your cart.');
         }
+
+        if ($product->stock <= 0) {
+            unset($cart[$product->id]);
+
+            $this->saveCart($request, $cart);
+
+            return redirect()->back()->with('error', 'This product is now out of stock and was removed from your cart.');
+        }
+
+        $quantity = (int) $request->input('quantity');
+
+        if ($quantity > $product->stock) {
+            return redirect()->back()->with(
+                'error',
+                'Not enough stock for '.$product->name.'. Only '.$product->stock.' left.'
+            );
+        }
+
+        $cart[$product->id]['quantity'] = $quantity;
+
+        $this->saveCart($request, $cart);
 
         return redirect()->back()->with('success', 'Cart updated.');
     }
@@ -92,4 +126,3 @@ class CartController extends Controller
         return redirect()->back()->with('success', 'Item removed.');
     }
 }
-

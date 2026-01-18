@@ -1,9 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Button from '@/Components/Button.vue';
-import Input from '@/Components/Input.vue';
 import InputError from '@/Components/InputError.vue';
-import { useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     order: Object,
@@ -13,6 +12,15 @@ const form = useForm({
     status: props.order.status,
 });
 
+const statusOptions = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'processing', label: 'Processing' },
+    { value: 'paid', label: 'Paid' },
+    { value: 'shipped', label: 'Shipped' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+];
+
 const submit = () => {
     form.patch(route('admin.orders.update', props.order.id));
 };
@@ -20,6 +28,7 @@ const submit = () => {
 
 <template>
     <AuthenticatedLayout>
+        <Head title="Admin - Order details" />
         <template #header>
             <div
                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
@@ -98,10 +107,18 @@ const submit = () => {
                         @submit.prevent="submit"
                     >
                         <div class="w-full sm:w-64">
-                            <Input
+                            <select
                                 v-model="form.status"
-                                placeholder="Status"
-                            />
+                                class="block w-full rounded-md border-gray-300 bg-white py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option
+                                    v-for="option in statusOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
                             <InputError
                                 class="mt-1"
                                 :message="form.errors.status"

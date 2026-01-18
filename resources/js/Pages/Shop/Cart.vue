@@ -2,7 +2,7 @@
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import Button from '@/Components/Button.vue';
 import Input from '@/Components/Input.vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     items: Array,
@@ -28,6 +28,7 @@ const removeItem = (item) => {
 
 <template>
     <ShopLayout>
+        <Head title="Your cart" />
         <div class="mb-6 flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-gray-900">Cart</h1>
             <p class="text-sm text-gray-500">
@@ -112,4 +113,3 @@ const removeItem = (item) => {
         </div>
     </ShopLayout>
 </template>
-

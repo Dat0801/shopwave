@@ -14,12 +14,26 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $orders = Order::with(['user', 'items.product'])
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', $request->string('status')->toString());
+            })
+            ->when($request->filled('from'), function ($query) use ($request) {
+                $query->whereDate('created_at', '>=', $request->date('from'));
+            })
+            ->when($request->filled('to'), function ($query) use ($request) {
+                $query->whereDate('created_at', '<=', $request->date('to'));
+            })
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $orders,
+            'filters' => [
+                'status' => $request->string('status')->toString(),
+                'from' => $request->string('from')->toString(),
+                'to' => $request->string('to')->toString(),
+            ],
         ]);
     }
 
@@ -35,7 +49,12 @@ class OrderController extends Controller
     public function update(Request $request, Order $order): RedirectResponse
     {
         $request->validate([
-            'status' => ['required', 'string', 'max:255'],
+            'status' => [
+                'required',
+                'string',
+                'max:255',
+                'in:pending,processing,paid,shipped,completed,cancelled',
+            ],
         ]);
 
         $order->update([
@@ -45,4 +64,3 @@ class OrderController extends Controller
         return redirect()->back()->with('success', 'Order updated.');
     }
 }
-

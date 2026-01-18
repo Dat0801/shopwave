@@ -2,7 +2,7 @@
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import Button from '@/Components/Button.vue';
 import Input from '@/Components/Input.vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -24,6 +24,7 @@ const addToCart = () => {
 
 <template>
     <ShopLayout>
+        <Head :title="`${product.name} - Product`" />
         <nav class="mb-4 text-xs text-gray-500">
             <Link :href="route('shop.index')" class="hover:underline">
                 Products
@@ -78,6 +79,7 @@ const addToCart = () => {
                             v-model="form.quantity"
                             type="number"
                             min="1"
+                            :max="product.stock"
                         />
                     </div>
 
@@ -89,4 +91,3 @@ const addToCart = () => {
         </div>
     </ShopLayout>
 </template>
-

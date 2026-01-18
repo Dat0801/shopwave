@@ -38,11 +38,21 @@ class CheckoutController extends Controller
             return redirect()->back()->with('error', 'Cart is empty.');
         }
 
-        $order = $this->orderService->createFromCart($request->user(), $cart);
+        try {
+            $order = $this->orderService->createFromCart($request->user(), $cart);
+        } catch (\RuntimeException $exception) {
+            return redirect()->route('cart.index')->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('cart.index')->with(
+                'error',
+                'Unable to place order right now. Please try again.'
+            );
+        }
 
         $request->session()->forget('cart');
 
         return redirect()->route('orders.index')->with('success', 'Order placed. #'.$order->id);
     }
 }
-
