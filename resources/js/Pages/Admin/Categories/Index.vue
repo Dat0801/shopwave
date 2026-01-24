@@ -137,7 +137,7 @@ const destroyCategory = (category) => {
 </script>
 
 <template>
-    <AuthenticatedLayout>
+    <AdminLayout>
         <Head title="Admin - Categories" />
         <template #header>
             <div
