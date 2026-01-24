@@ -24,7 +24,7 @@ const form = useForm({
     _method: 'PATCH',
 });
 
-const avatarPreview = ref(user.avatar ? `/storage/${user.avatar}` : null);
+const avatarPreview = ref(user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `/storage/${user.avatar}`) : null);
 const avatarInput = ref(null);
 
 const handleAvatarChange = (e) => {

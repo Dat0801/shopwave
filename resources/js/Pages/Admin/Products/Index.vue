@@ -82,6 +82,13 @@ const updateForm = useForm({
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 
+const getProductImageUrl = (path) => {
+    if (path && path.startsWith('http')) {
+        return path;
+    }
+    return '/storage/' + path;
+};
+
 const handleImageChange = (event, form) => {
     const file = event.target.files[0];
     form.image = file ?? null;
@@ -169,12 +176,12 @@ const destroyProduct = (product) => {
                     <p class="mt-1 text-sm text-gray-500">Manage your inventory, pricing, and stock status across all categories.</p>
                 </div>
                 <div>
-                    <button @click="openCreateModal" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <Link :href="route('admin.products.create')" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                         Add New Product
-                    </button>
+                    </Link>
                 </div>
             </div>
         </template>
@@ -245,7 +252,7 @@ const destroyProduct = (product) => {
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
                                     <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
-                                         <img v-if="product.image_path" :src="'/storage/' + product.image_path" class="h-full w-full object-cover" />
+                                         <img v-if="product.image_path" :src="getProductImageUrl(product.image_path)" class="h-full w-full object-cover" />
                                          <div v-else class="flex h-full w-full items-center justify-center text-gray-400">
                                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

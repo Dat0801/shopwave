@@ -6,7 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import ShopHeader from '@/Components/ShopHeader.vue';
+import ShopHeader from '@/Components/Shop/Header.vue';
 
 defineProps({
     canResetPassword: {

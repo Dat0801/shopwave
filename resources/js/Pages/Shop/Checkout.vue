@@ -198,7 +198,7 @@ const submit = () => {
                             <ul role="list" class="-my-6 divide-y divide-gray-200">
                                 <li v-for="item in items" :key="item.product_id" class="flex py-6">
                                     <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                                        <img :src="item.image" :alt="item.name" class="h-full w-full object-cover object-center">
+                                        <img :src="getProductImageUrl(item)" :alt="item.name" class="h-full w-full object-cover object-center">
                                     </div>
                                     <div class="ml-4 flex flex-1 flex-col">
                                         <div>

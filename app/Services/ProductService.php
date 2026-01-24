@@ -49,13 +49,22 @@ class ProductService
 
         unset($data['image']);
 
-        return Product::create($data);
+        $variants = $data['variants'] ?? [];
+        unset($data['variants']);
+
+        $product = Product::create($data);
+
+        if (! empty($variants)) {
+            $product->variants()->createMany($variants);
+        }
+
+        return $product;
     }
 
     public function update(Product $product, array $data): Product
     {
         if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
-            $data['image_path'] = $data['image']->store('products', 'public');
+            $data['image_path'] = $data['image']->storeOnCloudinary('shopwave/products')->getSecurePath();
         }
 
         unset($data['image']);
