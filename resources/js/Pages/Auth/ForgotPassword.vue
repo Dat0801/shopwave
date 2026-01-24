@@ -1,7 +1,7 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
-import ShopHeader from '@/Components/ShopHeader.vue';
+import ShopHeader from '@/Components/Shop/Header.vue';
 
 defineProps({
     status: {

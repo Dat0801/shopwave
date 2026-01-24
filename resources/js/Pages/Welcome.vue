@@ -19,6 +19,9 @@ const categories = [
 
 const getProductImage = (product) => {
     if (product.image_path) {
+        if (product.image_path.startsWith('http')) {
+            return product.image_path;
+        }
         return '/storage/' + product.image_path;
     }
     const fallbacks = [

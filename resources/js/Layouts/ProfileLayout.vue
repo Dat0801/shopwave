@@ -60,7 +60,7 @@ const navigation = computed(() => [
                         <div class="relative h-20 w-20 overflow-hidden rounded-full bg-gray-100 ring-2 ring-white">
                             <img 
                                 v-if="user.avatar" 
-                                :src="`/storage/${user.avatar}`" 
+                                :src="user.avatar.startsWith('http') ? user.avatar : `/storage/${user.avatar}`" 
                                 alt="User Avatar" 
                                 class="h-full w-full object-cover"
                             />

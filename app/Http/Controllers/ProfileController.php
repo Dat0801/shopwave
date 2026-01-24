@@ -34,9 +34,12 @@ class ProfileController extends Controller
 
         if ($request->hasFile('avatar')) {
             if ($request->user()->avatar) {
-                Storage::disk('public')->delete($request->user()->avatar);
+                // Only delete if it's a local file (not a URL)
+                if (!filter_var($request->user()->avatar, FILTER_VALIDATE_URL)) {
+                    Storage::disk('public')->delete($request->user()->avatar);
+                }
             }
-            $path = $request->file('avatar')->store('avatars', 'public');
+            $path = $request->file('avatar')->storeOnCloudinary('shopwave/avatars')->getSecurePath();
             $validated['avatar'] = $path;
         }
 

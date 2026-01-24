@@ -154,7 +154,7 @@ const formatDate = (date) => {
                                     <div class="flex items-center gap-3">
                                         <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-gray-100">
                                             <img 
-                                                :src="customer.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&background=random&color=fff`" 
+                                                :src="customer.avatar ? (customer.avatar.startsWith('http') ? customer.avatar : `/storage/${customer.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&background=random&color=fff`" 
                                                 alt="" 
                                                 class="h-full w-full object-cover"
                                             />

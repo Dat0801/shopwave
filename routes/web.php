@@ -68,7 +68,7 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::resource('products', ProductController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'update', 'destroy']);
         Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::patch('orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');

@@ -78,8 +78,8 @@ const grandTotal = computed(() => subtotal.value + tax.value + shipping);
                                 <div class="h-20 w-20 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
                                     <!-- Placeholder or Real Image -->
                                     <img 
-                                        v-if="item.image" 
-                                        :src="item.image" 
+                                        v-if="getProductImageUrl(item)" 
+                                        :src="getProductImageUrl(item)" 
                                         :alt="item.name" 
                                         class="h-full w-full object-cover"
                                     />

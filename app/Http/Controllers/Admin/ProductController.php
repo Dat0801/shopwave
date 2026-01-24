@@ -40,11 +40,18 @@ class ProductController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        return Inertia::render('Admin/Products/Create', [
+            'categories' => $this->productService->categoriesForSelect(),
+        ]);
+    }
+
     public function store(StoreProductRequest $request): RedirectResponse
     {
         $this->productService->create($request->validated());
 
-        return redirect()->back()->with('success', 'Product created.');
+        return redirect()->route('admin.products.index')->with('success', 'Product created.');
     }
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse

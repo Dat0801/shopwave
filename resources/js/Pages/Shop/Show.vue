@@ -65,13 +65,19 @@ const selectedSize = ref('M');
 const activeTab = ref('description');
 const currentImage = ref(0);
 
+const getProductImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return '/storage/' + path;
+};
+
 // Mock Images (using placeholder if no real images)
-const images = [
-    props.product.image_path || null,
+const images = computed(() => [
+    getProductImageUrl(props.product.image_path),
     null,
     null,
     null
-];
+]);
 
 const addToCart = () => {
     form.transform((data) => ({

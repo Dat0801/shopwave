@@ -15,14 +15,22 @@ class CategoryController extends Controller
 {
     public function index(Request $request): Response
     {
-        $categories = Category::query()
-            ->with('parent')
-            ->when($request->string('search'), function ($query, $search) {
-                $query->where('name', 'like', '%'.$search.'%');
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+        $query = Category::query();
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%'.$request->string('search').'%');
+            $categories = $query->with('parent')->withCount('products')->paginate(10)->withQueryString();
+        } else {
+            $query->whereNull('parent_id')
+                ->withCount('products')
+                ->with(['children' => function ($q) {
+                    $q->withCount('products')
+                      ->with(['children' => function ($q2) {
+                          $q2->withCount('products');
+                      }]);
+                }]);
+            $categories = $query->latest()->paginate(10)->withQueryString();
+        }
 
         return Inertia::render('Admin/Categories/Index', [
             'categories' => $categories,
@@ -35,14 +43,28 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        Category::create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->storeOnCloudinary('shopwave/categories')->getSecurePath();
+        }
+        unset($data['image']);
+
+        Category::create($data);
 
         return redirect()->back()->with('success', 'Category created.');
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $category->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->storeOnCloudinary('shopwave/categories')->getSecurePath();
+        }
+        unset($data['image']);
+
+        $category->update($data);
 
         return redirect()->back()->with('success', 'Category updated.');
     }

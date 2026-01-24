@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import ShopHeader from '@/Components/ShopHeader.vue';
+import ShopHeader from '@/Components/Shop/Header.vue';
 
 const form = useForm({
     name: '',
