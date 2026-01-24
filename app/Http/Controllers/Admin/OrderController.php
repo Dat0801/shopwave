@@ -14,6 +14,16 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $orders = Order::with(['user', 'items.product'])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+                $query->where(function ($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhereHas('user', function ($q) use ($search) {
+                          $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', $request->string('status')->toString());
             })
@@ -30,6 +40,7 @@ class OrderController extends Controller
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $orders,
             'filters' => [
+                'search' => $request->string('search')->toString(),
                 'status' => $request->string('status')->toString(),
                 'from' => $request->string('from')->toString(),
                 'to' => $request->string('to')->toString(),

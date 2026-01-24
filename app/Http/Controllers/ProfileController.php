@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +30,23 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $validated = $request->validated();
+
+        if ($request->hasFile('avatar')) {
+            if ($request->user()->avatar) {
+                Storage::disk('public')->delete($request->user()->avatar);
+            }
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $path;
+        }
+
+        // Handle avatar removal if requested (e.g. passing null or specific flag)
+        // For now, let's assume if 'avatar' is passed as null explicitly, we remove it.
+        // But the validation rules say 'nullable|image', so if it's null it might be ignored or passed as null.
+        // However, HTML file input doesn't send null if empty.
+        // We can handle a separate field 'remove_avatar' if needed, but let's stick to simple upload for now.
+
+        $request->user()->fill($validated);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;

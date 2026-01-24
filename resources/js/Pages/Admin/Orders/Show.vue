@@ -134,5 +134,5 @@ const submit = () => {
                 </section>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </AdminLayout>
 </template>

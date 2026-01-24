@@ -16,8 +16,29 @@ class OrderHistoryController extends Controller
             ->orders()
             ->with('items.product');
 
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $ordersQuery->where(function ($query) use ($search) {
+                $query->where('id', 'like', "%{$search}%")
+                    ->orWhereHas('items.product', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         if ($request->filled('status')) {
             $ordersQuery->where('status', $request->string('status')->toString());
+        }
+
+        if ($request->filled('period')) {
+            $period = $request->string('period')->toString();
+            if ($period === '30_days') {
+                $ordersQuery->whereDate('created_at', '>=', now()->subDays(30));
+            } elseif ($period === '3_months') {
+                $ordersQuery->whereDate('created_at', '>=', now()->subMonths(3));
+            } elseif (is_numeric($period)) {
+                $ordersQuery->whereYear('created_at', $period);
+            }
         }
 
         if ($request->filled('from')) {
@@ -36,7 +57,9 @@ class OrderHistoryController extends Controller
         return Inertia::render('Orders/Index', [
             'orders' => $orders,
             'filters' => [
+                'search' => $request->string('search')->toString(),
                 'status' => $request->string('status')->toString(),
+                'period' => $request->string('period')->toString(),
                 'from' => $request->string('from')->toString(),
                 'to' => $request->string('to')->toString(),
             ],
