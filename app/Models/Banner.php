@@ -12,9 +12,14 @@ class Banner extends Model
     protected $fillable = [
         'title',
         'image_path',
+        'mobile_image_path',
         'link',
         'duration',
         'description',
+        'button_text',
+        'start_date',
+        'end_date',
+        'placement',
         'is_active',
         'order',
     ];
@@ -23,5 +28,7 @@ class Banner extends Model
         'is_active' => 'boolean',
         'order' => 'integer',
         'duration' => 'integer',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
     ];
 }

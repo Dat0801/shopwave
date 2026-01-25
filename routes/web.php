@@ -70,9 +70,9 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
-        Route::resource('banners', BannerController::class)->except(['show']);
-        Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
-        Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('banners', BannerController::class);
+        Route::post('categories/bulk-update-status', [CategoryController::class, 'bulkUpdateStatus'])->name('categories.bulk-update-status');
+        Route::resource('categories', CategoryController::class);
         Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
         Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');

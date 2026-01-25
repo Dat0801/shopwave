@@ -19,6 +19,7 @@ const selectedSort = ref(props.filters.sort || 'newest');
 const minPrice = ref(props.filters.min_price || '');
 const maxPrice = ref(props.filters.max_price || '');
 const selectedSizes = ref(props.filters.size ? (Array.isArray(props.filters.size) ? props.filters.size : [props.filters.size]) : []);
+const selectedColors = ref(props.filters.color ? (Array.isArray(props.filters.color) ? props.filters.color : [props.filters.color]) : []);
 
 // Mock Data for UI (since backend doesn't support these yet)
 const sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '40', '41', '42', '43', '44'];
@@ -64,6 +65,7 @@ const clearFilters = () => {
     minPrice.value = '';
     maxPrice.value = '';
     selectedSizes.value = [];
+    selectedColors.value = [];
     updateFilters();
 };
 

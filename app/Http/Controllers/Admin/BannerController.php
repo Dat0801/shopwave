@@ -29,8 +29,13 @@ class BannerController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'image' => 'required|image|max:2048',
+            'mobile_image' => 'nullable|image|max:2048',
             'link' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'button_text' => 'nullable|string|max:255',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after:start_date',
+            'placement' => 'nullable|string|max:255',
             'is_active' => 'boolean',
             'order' => 'integer',
             'duration' => 'integer|min:1000',
@@ -40,16 +45,28 @@ class BannerController extends Controller
             $validated['image_path'] = $request->file('image')->storeOnCloudinary('shopwave/banners')->getSecurePath();
         }
 
+        if ($request->hasFile('mobile_image')) {
+            $validated['mobile_image_path'] = $request->file('mobile_image')->storeOnCloudinary('shopwave/banners')->getSecurePath();
+        }
+
         unset($validated['image']);
+        unset($validated['mobile_image']);
 
         Banner::create($validated);
 
         return redirect()->route('admin.banners.index')->with('success', 'Banner created successfully.');
     }
 
+    public function show(Banner $banner)
+    {
+        return Inertia::render('Admin/Banners/Show', [
+            'banner' => $banner
+        ]);
+    }
+
     public function edit(Banner $banner)
     {
-        return Inertia::render('Admin/Banners/Create', [
+        return Inertia::render('Admin/Banners/Edit', [
             'banner' => $banner
         ]);
     }
@@ -59,8 +76,13 @@ class BannerController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:2048',
+            'mobile_image' => 'nullable|image|max:2048',
             'link' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'button_text' => 'nullable|string|max:255',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after:start_date',
+            'placement' => 'nullable|string|max:255',
             'is_active' => 'boolean',
             'order' => 'integer',
             'duration' => 'integer|min:1000',
@@ -70,7 +92,12 @@ class BannerController extends Controller
             $validated['image_path'] = $request->file('image')->storeOnCloudinary('shopwave/banners')->getSecurePath();
         }
 
+        if ($request->hasFile('mobile_image')) {
+            $validated['mobile_image_path'] = $request->file('mobile_image')->storeOnCloudinary('shopwave/banners')->getSecurePath();
+        }
+
         unset($validated['image']);
+        unset($validated['mobile_image']);
 
         $banner->update($validated);
 

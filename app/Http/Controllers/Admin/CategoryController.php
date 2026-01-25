@@ -16,63 +16,52 @@ class CategoryController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Category::query();
+        $query = Category::with('parent')->withCount('products');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%'.$request->string('search').'%');
-            $categories = $query->with('parent')->withCount('products')->paginate(10)->withQueryString();
-        } else {
-            // When not searching, return the full tree for drag-and-drop reordering
-            $categories = Category::whereNull('parent_id')
-                ->withCount('products')
-                ->with(['children' => function ($q) {
-                    $q->orderBy('order')
-                      ->withCount('products')
-                      ->with(['children' => function ($q2) {
-                          $q2->orderBy('order')->withCount('products');
-                      }]);
-                }])
-                ->orderBy('order')
-                ->get();
         }
+
+        $categories = $query->orderBy('order')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Admin/Categories/Index', [
             'categories' => $categories,
-            'allCategories' => Category::orderBy('name')->get(['id', 'name', 'parent_id']),
             'filters' => [
                 'search' => $request->string('search'),
             ],
         ]);
     }
 
-    public function reorder(Request $request): RedirectResponse
+    public function create(): Response
     {
-        $request->validate([
-            'categories' => 'required|array',
-            'categories.*.id' => 'required|exists:categories,id',
-            'categories.*.children' => 'nullable|array',
+        return Inertia::render('Admin/Categories/Create', [
+            'allCategories' => Category::orderBy('name')->get(['id', 'name', 'parent_id']),
         ]);
-
-        $this->updateOrder($request->categories, null);
-
-        return redirect()->back()->with('success', 'Categories reordered successfully.');
     }
 
-    private function updateOrder(array $categories, ?int $parentId)
+    public function edit(Category $category): Response
     {
-        foreach ($categories as $index => $categoryData) {
-            $category = Category::find($categoryData['id']);
-            if ($category) {
-                $category->update([
-                    'parent_id' => $parentId,
-                    'order' => $index + 1,
-                ]);
+        return Inertia::render('Admin/Categories/Edit', [
+            'category' => $category,
+            'allCategories' => Category::where('id', '!=', $category->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'parent_id']),
+        ]);
+    }
 
-                if (isset($categoryData['children']) && !empty($categoryData['children'])) {
-                    $this->updateOrder($categoryData['children'], $category->id);
-                }
-            }
-        }
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:categories,id',
+            'status' => 'required|boolean',
+        ]);
+
+        Category::whereIn('id', $request->ids)->update(['status' => $request->status]);
+
+        return redirect()->back()->with('success', 'Categories status updated successfully.');
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
@@ -86,7 +75,7 @@ class CategoryController extends Controller
 
         Category::create($data);
 
-        return redirect()->back()->with('success', 'Category created.');
+        return redirect()->route('admin.categories.index')->with('success', 'Category created.');
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
@@ -100,7 +89,7 @@ class CategoryController extends Controller
 
         $category->update($data);
 
-        return redirect()->back()->with('success', 'Category updated.');
+        return redirect()->route('admin.categories.index')->with('success', 'Category updated.');
     }
 
     public function destroy(Category $category): RedirectResponse
