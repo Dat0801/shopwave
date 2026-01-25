@@ -21,7 +21,6 @@ const form = useForm({
     birthday: user.birthday || '',
     bio: user.bio || '',
     avatar: null,
-    _method: 'PATCH',
 });
 
 const avatarPreview = ref(user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `/storage/${user.avatar}`) : null);
@@ -44,7 +43,10 @@ const triggerAvatarUpload = () => {
 };
 
 const submit = () => {
-    form.post(route('profile.update'), {
+    form.transform((data) => ({
+        ...data,
+        _method: 'PATCH',
+    })).post(route('profile.update'), {
         preserveScroll: true,
         onSuccess: () => {
             // handle success

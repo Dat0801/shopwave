@@ -69,7 +69,17 @@ class ProductService
 
         unset($data['image']);
 
+        $variants = $data['variants'] ?? [];
+        unset($data['variants']);
+
         $product->update($data);
+
+        // Replace variants
+        $product->variants()->delete();
+
+        if (! empty($variants)) {
+            $product->variants()->createMany($variants);
+        }
 
         return $product;
     }
