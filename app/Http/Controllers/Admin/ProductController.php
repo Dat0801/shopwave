@@ -28,6 +28,13 @@ class ProductController extends Controller
             $request->filled('stock') ? $request->string('stock')->toString() : null
         );
 
+        // Calculate stats
+        $totalValue = Product::sum(\Illuminate\Support\Facades\DB::raw('price * stock'));
+        $lowStock = Product::where('stock', '<=', 10)->count();
+        $activeCategories = \App\Models\Category::whereHas('products', function ($q) {
+            $q->where('status', true);
+        })->count();
+
         return Inertia::render('Admin/Products/Index', [
             'products' => $products,
             'categories' => $this->productService->categoriesForSelect(),
@@ -36,6 +43,11 @@ class ProductController extends Controller
                 'category_id' => $request->string('category_id')->toString(),
                 'status' => $request->string('status')->toString(),
                 'stock' => $request->string('stock')->toString(),
+            ],
+            'stats' => [
+                'totalValue' => $totalValue,
+                'lowStock' => $lowStock,
+                'activeCategories' => $activeCategories,
             ],
         ]);
     }
@@ -52,6 +64,16 @@ class ProductController extends Controller
         $this->productService->create($request->validated());
 
         return redirect()->route('admin.products.index')->with('success', 'Product created.');
+    }
+
+    public function edit(Product $product): Response
+    {
+        $product->load('variants');
+        
+        return Inertia::render('Admin/Products/Edit', [
+            'product' => $product,
+            'categories' => $this->productService->categoriesForSelect(),
+        ]);
     }
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse

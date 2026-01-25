@@ -34,6 +34,10 @@ const tax = computed(() => subtotal.value * 0.05); // Mock 5% tax
 const shipping = 0; // Free shipping
 const grandTotal = computed(() => subtotal.value + tax.value + shipping);
 
+import { getImageUrl } from '@/Utils/image';
+const getProductImageUrl = (item) => {
+    return getImageUrl(item.image_path, 200, 200);
+};
 </script>
 
 <template>

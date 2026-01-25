@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,15 +22,18 @@ class CategoryController extends Controller
             $query->where('name', 'like', '%'.$request->string('search').'%');
             $categories = $query->with('parent')->withCount('products')->paginate(10)->withQueryString();
         } else {
-            $query->whereNull('parent_id')
+            // When not searching, return the full tree for drag-and-drop reordering
+            $categories = Category::whereNull('parent_id')
                 ->withCount('products')
                 ->with(['children' => function ($q) {
-                    $q->withCount('products')
+                    $q->orderBy('order')
+                      ->withCount('products')
                       ->with(['children' => function ($q2) {
-                          $q2->withCount('products');
+                          $q2->orderBy('order')->withCount('products');
                       }]);
-                }]);
-            $categories = $query->latest()->paginate(10)->withQueryString();
+                }])
+                ->orderBy('order')
+                ->get();
         }
 
         return Inertia::render('Admin/Categories/Index', [
@@ -39,6 +43,36 @@ class CategoryController extends Controller
                 'search' => $request->string('search'),
             ],
         ]);
+    }
+
+    public function reorder(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'categories' => 'required|array',
+            'categories.*.id' => 'required|exists:categories,id',
+            'categories.*.children' => 'nullable|array',
+        ]);
+
+        $this->updateOrder($request->categories, null);
+
+        return redirect()->back()->with('success', 'Categories reordered successfully.');
+    }
+
+    private function updateOrder(array $categories, ?int $parentId)
+    {
+        foreach ($categories as $index => $categoryData) {
+            $category = Category::find($categoryData['id']);
+            if ($category) {
+                $category->update([
+                    'parent_id' => $parentId,
+                    'order' => $index + 1,
+                ]);
+
+                if (isset($categoryData['children']) && !empty($categoryData['children'])) {
+                    $this->updateOrder($categoryData['children'], $category->id);
+                }
+            }
+        }
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse

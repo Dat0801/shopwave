@@ -1,5 +1,6 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Breadcrumb from '@/Components/Admin/Breadcrumb.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -84,6 +85,13 @@ const getStatusLabel = (status) => {
         <template #header>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
+                    <Breadcrumb 
+                        :items="[
+                            { label: 'Admin', href: route('admin.dashboard') },
+                            { label: 'Orders' }
+                        ]" 
+                        class="mb-1"
+                    />
                     <h1 class="text-2xl font-bold text-gray-900">
                         Order Management
                     </h1>

@@ -18,9 +18,11 @@ class ProductController extends Controller
             ->when($request->filled('category'), function ($query) use ($request) {
                 $slug = $request->string('category')->toString();
 
-                $query->whereHas('category', function ($categoryQuery) use ($slug) {
-                    $categoryQuery->where('slug', $slug);
-                });
+                $category = Category::where('slug', $slug)->first();
+                if ($category) {
+                    $ids = $category->children()->pluck('id')->push($category->id);
+                    $query->whereIn('category_id', $ids);
+                }
             })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search')->toString();
@@ -31,7 +33,15 @@ class ProductController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        $categories = Category::orderBy('name')->get(['id', 'name', 'slug']);
+        $categories = Category::whereNull('parent_id')
+            ->where('status', true)
+            ->with(['children' => function ($query) {
+                $query->where('status', true)
+                    ->select('id', 'name', 'slug', 'parent_id')
+                    ->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug']);
 
         return Inertia::render('Shop/Index', [
             'products' => $products,

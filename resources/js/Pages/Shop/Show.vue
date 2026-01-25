@@ -3,6 +3,7 @@ import ShopLayout from '@/Layouts/ShopLayout.vue';
 import Button from '@/Components/Button.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { getImageUrl } from '@/Utils/image';
 
 const props = defineProps({
     product: Object,
@@ -66,9 +67,7 @@ const activeTab = ref('description');
 const currentImage = ref(0);
 
 const getProductImageUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return '/storage/' + path;
+    return getImageUrl(path, 600, 600);
 };
 
 // Mock Images (using placeholder if no real images)

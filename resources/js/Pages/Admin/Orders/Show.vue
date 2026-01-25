@@ -1,5 +1,6 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Breadcrumb from '@/Components/Admin/Breadcrumb.vue';
 import Button from '@/Components/Button.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, useForm } from '@inertiajs/vue3';
@@ -27,13 +28,21 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthenticatedLayout>
+    <AdminLayout>
         <Head title="Admin - Order details" />
         <template #header>
             <div
                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
             >
                 <div>
+                    <Breadcrumb 
+                        :items="[
+                            { label: 'Admin', href: route('admin.dashboard') },
+                            { label: 'Orders', href: route('admin.orders.index') },
+                            { label: 'Order #' + order.id }
+                        ]" 
+                        class="mb-1"
+                    />
                     <h1 class="text-2xl font-semibold text-gray-900">
                         Order #{{ order.id }}
                     </h1>

@@ -1,17 +1,42 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Breadcrumb from '@/Components/Admin/Breadcrumb.vue';
 import Input from '@/Components/Input.vue';
 import InputError from '@/Components/InputError.vue';
 import Modal from '@/Components/Modal.vue';
+import CategoryItem from './CategoryItem.vue';
+import draggable from 'vuedraggable';
 import { useForm, Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import { debounce } from 'lodash';
+import { getImageUrl } from '@/Utils/image';
 
 const props = defineProps({
-    categories: Object,
+    categories: [Object, Array],
     filters: Object,
     allCategories: Array,
 });
+
+const treeData = ref([]);
+
+watch(() => props.categories, (newVal) => {
+    if (Array.isArray(newVal)) {
+        treeData.value = newVal;
+    } else if (newVal?.data) {
+        treeData.value = newVal.data;
+    } else {
+        treeData.value = [];
+    }
+}, { immediate: true });
+
+const onTreeChange = debounce(() => {
+    router.post(route('admin.categories.reorder'), {
+        categories: treeData.value
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+    });
+}, 500);
 
 const filterForm = useForm({
     search: props.filters?.search || '',
@@ -34,63 +59,13 @@ const updateForm = useForm({
     status: true,
     parent_id: '',
     image: null,
-    _method: 'PUT',
 });
 
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const createSlugTouched = ref(false);
-const expandedCategories = ref(new Set());
-
-// Initialize expanded categories from local storage or default
-const toggleExpand = (categoryId) => {
-    if (expandedCategories.value.has(categoryId)) {
-        expandedCategories.value.delete(categoryId);
-    } else {
-        expandedCategories.value.add(categoryId);
-    }
-};
-
-const collapseAll = () => {
-    expandedCategories.value.clear();
-};
 
 const isSearching = computed(() => !!filterForm.search);
-
-const flattenCategories = computed(() => {
-    if (isSearching.value) {
-        return props.categories.data.map(cat => ({
-            ...cat,
-            depth: 0,
-            hasChildren: false, // In search results, we show flat list
-        }));
-    }
-
-    const result = [];
-    
-    const process = (cats, depth = 0) => {
-        if (!cats) return;
-        
-        cats.forEach(cat => {
-            const hasChildren = cat.children && cat.children.length > 0;
-            const isExpanded = expandedCategories.value.has(cat.id);
-            
-            result.push({
-                ...cat,
-                depth,
-                hasChildren,
-                isExpanded
-            });
-
-            if (hasChildren && isExpanded) {
-                process(cat.children, depth + 1);
-            }
-        });
-    };
-
-    process(props.categories.data);
-    return result;
-});
 
 const availableParentCategories = computed(() => {
     if (!Array.isArray(props.allCategories)) {
@@ -103,16 +78,16 @@ const availableParentCategories = computed(() => {
     );
 });
 
-const slugify = (value) => {
-    if (!value) return '';
-    return value
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+const slugify = (text) => {
+    return text
+        .toString()
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
-        .replace(/-+/g, '-');
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
 };
 
 watch(() => createForm.name, (value) => {
@@ -174,7 +149,10 @@ const closeEditModal = () => {
 const submitUpdate = () => {
     if (!updateForm.id) return;
 
-    updateForm.post(route('admin.categories.update', updateForm.id), {
+    updateForm.transform((data) => ({
+        ...data,
+        _method: 'PUT',
+    })).post(route('admin.categories.update', updateForm.id), {
         preserveScroll: true,
         onSuccess: () => {
             showEditModal.value = false;
@@ -215,10 +193,16 @@ const handleImageUpload = (e, form) => {
     <AdminLayout>
         <Head title="Admin - Categories" />
         
-        <div class="space-y-6">
-            <!-- Header -->
+        <template #header>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
+                    <Breadcrumb 
+                        :items="[
+                            { label: 'Admin', href: route('admin.dashboard') },
+                            { label: 'Categories' }
+                        ]" 
+                        class="mb-1"
+                    />
                     <h1 class="text-2xl font-bold text-gray-900">Category Management</h1>
                     <p class="mt-1 text-sm text-gray-500">Organize and manage your product hierarchy and sub-categories.</p>
                 </div>
@@ -231,6 +215,9 @@ const handleImageUpload = (e, form) => {
                     </button>
                 </div>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- Toolbar -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -268,80 +255,99 @@ const handleImageUpload = (e, form) => {
                 </div>
             </div>
 
-            <!-- Table -->
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <!-- Tree View (Drag & Drop) -->
+            <div v-if="!isSearching" class="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-center border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <div class="flex-1 px-4">Category</div>
+                    <div class="flex-1 px-4 hidden md:block">Description</div>
+                    <div class="w-24 px-4 text-center">Products</div>
+                    <div class="w-24 px-4 text-center">Status</div>
+                    <div class="w-24 px-4 text-right">Actions</div>
+                </div>
+
+                <draggable
+                    v-model="treeData"
+                    item-key="id"
+                    group="categories"
+                    @change="onTreeChange"
+                    ghost-class="bg-blue-50"
+                    class="min-h-[50px]"
+                >
+                    <template #item="{ element }">
+                        <CategoryItem 
+                            :category="element"
+                            @edit="startEdit"
+                            @delete="destroyCategory"
+                            @toggle-status="toggleStatus"
+                            @change="onTreeChange"
+                        />
+                    </template>
+                </draggable>
+
+                 <div v-if="treeData.length === 0" class="p-12 text-center text-gray-500">
+                    No categories found. Click "Add New Category" to create one.
+                </div>
+            </div>
+
+            <!-- Table (Search Results) -->
+            <div v-else class="relative overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Thumbnail</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Category Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Products</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Name
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Description
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Products
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
+                                    Status
+                                </th>
+                                <th scope="col" class="relative px-6 py-3">
+                                    <span class="sr-only">Actions</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
-                            <tr v-for="category in flattenCategories" :key="category.id" class="hover:bg-gray-50">
-                                <!-- Thumbnail -->
+                            <tr v-for="category in categories.data" :key="category.id" class="group hover:bg-gray-50">
                                 <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="h-10 w-10 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
-                                        <img v-if="category.image_path" :src="category.image_path" :alt="category.name" class="h-full w-full object-cover">
-                                        <svg v-else class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                </td>
-                                <!-- Name -->
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center" :style="{ paddingLeft: `${category.depth * 24}px` }">
-                                        <!-- Expand/Collapse Button -->
-                                        <button 
-                                            v-if="category.hasChildren"
-                                            @click="toggleExpand(category.id)"
-                                            class="mr-2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                        >
-                                            <svg class="h-4 w-4 transition-transform duration-200" :class="{ 'rotate-90': category.isExpanded }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                        <div v-else class="mr-2 w-5"></div> <!-- Spacer -->
-
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-900">{{ category.name }}</div>
-                                            <div v-if="category.description" class="text-xs text-gray-500">{{ category.description }}</div>
-                                            <div v-else-if="category.depth === 0" class="text-xs text-gray-500">Major category</div>
-                                            <div v-else class="text-xs text-gray-500">SUB-CATEGORY</div>
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 flex-shrink-0">
+                                            <img :src="getImageUrl(category.image_path, 40, 40)" class="h-10 w-10 rounded-lg object-cover ring-1 ring-gray-200" alt="">
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="font-medium text-gray-900">{{ category.name }}</div>
+                                            <div class="text-sm text-gray-500">/{{ category.slug }}</div>
                                         </div>
                                     </div>
                                 </td>
-                                <!-- Products -->
-                                <td class="whitespace-nowrap px-6 py-4">
-                                    <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                                        {{ category.products_count }} products
-                                    </span>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900 max-w-xs truncate">{{ category.description || '-' }}</div>
                                 </td>
-                                <!-- Status -->
-                                <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2" 
-                                         :class="category.status ? 'bg-blue-600' : 'bg-gray-200'"
-                                         role="switch" 
-                                         :aria-checked="category.status"
-                                         @click="toggleStatus(category)"
+                                <td class="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500">
+                                    {{ category.products_count }}
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4 text-center">
+                                    <button 
+                                        @click="toggleStatus(category)"
+                                        class="inline-flex rounded-full px-2 text-xs font-semibold leading-5"
+                                        :class="category.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
                                     >
-                                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" 
-                                              :class="category.status ? 'translate-x-5' : 'translate-x-0'"
-                                        ></span>
-                                    </div>
+                                        {{ category.status ? 'Active' : 'Inactive' }}
+                                    </button>
                                 </td>
-                                <!-- Actions -->
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                    <button @click="startEdit(category)" class="mr-3 text-gray-400 hover:text-blue-600">
+                                    <button @click="startEdit(category)" class="text-blue-600 hover:text-blue-900 mr-3">
                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                                         </svg>
                                     </button>
-                                    <button @click="destroyCategory(category)" class="text-gray-400 hover:text-red-600">
+                                    <button @click="destroyCategory(category)" class="text-red-600 hover:text-red-900">
                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>

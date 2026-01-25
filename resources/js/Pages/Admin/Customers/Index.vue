@@ -1,5 +1,6 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Breadcrumb from '@/Components/Admin/Breadcrumb.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -42,15 +43,16 @@ const formatDate = (date) => {
     <AdminLayout>
         <Head title="Admin - Customer Management" />
 
-        <div class="space-y-6">
-            <!-- Header -->
+        <template #header>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                        <span>Admin</span>
-                        <span>/</span>
-                        <span>Customer Management</span>
-                    </div>
+                    <Breadcrumb 
+                        :items="[
+                            { label: 'Admin', href: route('admin.dashboard') },
+                            { label: 'Customers' }
+                        ]" 
+                        class="mb-1"
+                    />
                     <h1 class="text-2xl font-bold text-gray-900">
                         Customer Management
                     </h1>
@@ -73,6 +75,9 @@ const formatDate = (date) => {
                     </button>
                 </div>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- Filters -->
             <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
