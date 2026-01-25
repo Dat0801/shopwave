@@ -27,6 +27,7 @@ class UpdateCategoryRequest extends FormRequest
             'parent_id' => ['nullable', 'exists:categories,id'],
             'image' => ['nullable', 'image', 'max:2048'],
             'description' => ['nullable', 'string'],
+            'order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

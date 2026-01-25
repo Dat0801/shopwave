@@ -6,23 +6,31 @@ import { ref } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
+import { getImageUrl } from '@/Utils/image';
+
+const props = defineProps({
+    banner: {
+        type: Object,
+        required: true,
+    },
+});
 
 const form = useForm({
-    title: '',
-    description: '',
-    button_text: '',
-    link: '',
-    start_date: '',
-    end_date: '',
-    placement: 'Homepage Hero (Top)',
-    duration: 5000,
-    is_active: true,
+    title: props.banner.title || '',
+    description: props.banner.description || '',
+    button_text: props.banner.button_text || '',
+    link: props.banner.link || '',
+    start_date: props.banner.start_date ? new Date(props.banner.start_date).toISOString().slice(0, 16) : '',
+    end_date: props.banner.end_date ? new Date(props.banner.end_date).toISOString().slice(0, 16) : '',
+    placement: props.banner.placement || 'Homepage Hero (Top)',
+    duration: props.banner.duration || 5000,
+    is_active: Boolean(props.banner.is_active),
     image: null,
     mobile_image: null,
 });
 
-const imagePreview = ref(null);
-const mobileImagePreview = ref(null);
+const imagePreview = ref(props.banner.image_path ? getImageUrl(props.banner.image_path) : null);
+const mobileImagePreview = ref(props.banner.mobile_image_path ? getImageUrl(props.banner.mobile_image_path) : null);
 
 const handleImageChange = (e, type) => {
     const file = e.target.files[0];
@@ -46,13 +54,16 @@ const handleImageChange = (e, type) => {
 };
 
 const submit = () => {
-    form.post(route('admin.banners.store'));
+    form.transform((data) => ({
+        ...data,
+        _method: 'PUT',
+    })).post(route('admin.banners.update', props.banner.id));
 };
 </script>
 
 <template>
     <AdminLayout>
-        <Head title="Admin - Create Banner" />
+        <Head title="Admin - Edit Banner" />
 
         <template #header>
             <div class="mb-6">
@@ -60,15 +71,15 @@ const submit = () => {
                     :items="[
                         { label: 'Marketing', href: '#' },
                         { label: 'Banners', href: route('admin.banners.index') },
-                        { label: 'Create New Banner' }
+                        { label: 'Edit Banner' }
                     ]" 
                     class="mb-2"
                 />
                 <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
-                    Create New Banner
+                    Edit Banner
                 </h1>
                 <p class="mt-2 text-base text-gray-600">
-                    Launch a high-impact marketing banner across your digital storefront.
+                    Update your marketing banner details.
                 </p>
             </div>
         </template>
@@ -319,7 +330,7 @@ const submit = () => {
                             :disabled="form.processing"
                             class="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                            Publish Banner
+                            Update Banner
                         </button>
                     </div>
                 </div>

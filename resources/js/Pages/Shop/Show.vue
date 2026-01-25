@@ -7,7 +7,7 @@ import { getImageUrl } from '@/Utils/image';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
-import TextArea from '@/Components/TextArea.vue'; // Assuming I have this or use textarea
+import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ProductCard from '@/Components/Shop/ProductCard.vue';
