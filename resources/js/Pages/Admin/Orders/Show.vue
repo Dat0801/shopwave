@@ -106,6 +106,17 @@ const submit = () => {
                     </ul>
                 </section>
 
+                <section v-if="order.shipping_address" class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+                    <h2 class="mb-3 text-sm font-semibold text-gray-800">
+                        Shipping Address
+                    </h2>
+                    <div class="text-sm text-gray-700">
+                        <p class="font-medium">{{ order.shipping_address.first_name }} {{ order.shipping_address.last_name }}</p>
+                        <p>{{ order.shipping_address.address }}</p>
+                        <p>{{ order.shipping_address.city }}, {{ order.shipping_address.postal_code }}</p>
+                    </div>
+                </section>
+
                 <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
                     <h2 class="mb-3 text-sm font-semibold text-gray-800">
                         Update status

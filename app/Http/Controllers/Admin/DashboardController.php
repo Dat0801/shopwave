@@ -23,6 +23,71 @@ class DashboardController extends Controller
         $outOfStockProducts = Product::where('stock', 0)->count();
         $totalStock = Product::sum('stock');
 
+        // Calculate Growth (Month over Month)
+        $now = Carbon::now();
+        $prevMonth = $now->copy()->subMonth();
+
+        // Revenue Growth
+        $currentMonthRevenue = Order::whereYear('created_at', $now->year)
+            ->whereMonth('created_at', $now->month)
+            ->sum('total_price');
+        $prevMonthRevenue = Order::whereYear('created_at', $prevMonth->year)
+            ->whereMonth('created_at', $prevMonth->month)
+            ->sum('total_price');
+        $revenueGrowth = $prevMonthRevenue > 0 ? (($currentMonthRevenue - $prevMonthRevenue) / $prevMonthRevenue) * 100 : 100;
+
+        // Orders Growth
+        $currentMonthOrders = Order::whereYear('created_at', $now->year)
+            ->whereMonth('created_at', $now->month)
+            ->count();
+        $prevMonthOrders = Order::whereYear('created_at', $prevMonth->year)
+            ->whereMonth('created_at', $prevMonth->month)
+            ->count();
+        $ordersGrowth = $prevMonthOrders > 0 ? (($currentMonthOrders - $prevMonthOrders) / $prevMonthOrders) * 100 : 100;
+
+        // Users Growth
+        $currentMonthUsers = User::whereYear('created_at', $now->year)
+            ->whereMonth('created_at', $now->month)
+            ->count();
+        $prevMonthUsers = User::whereYear('created_at', $prevMonth->year)
+            ->whereMonth('created_at', $prevMonth->month)
+            ->count();
+        $usersGrowth = $prevMonthUsers > 0 ? (($currentMonthUsers - $prevMonthUsers) / $prevMonthUsers) * 100 : 100;
+
+        // Top Selling Products
+        $topProducts = \App\Models\OrderItem::select('product_id', \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_sold'))
+            ->with('product')
+            ->groupBy('product_id')
+            ->orderByDesc('total_sold')
+            ->take(5)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->product_id,
+                    'name' => $item->product ? $item->product->name : 'Unknown Product',
+                    'image' => $item->product ? $item->product->image_path : null,
+                    'price' => $item->product ? $item->product->price : 0,
+                    'sold' => $item->total_sold,
+                ];
+            });
+
+        // Daily Orders (Last 30 days)
+        $dailyOrders = Order::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->where('created_at', '>=', Carbon::now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+        
+        $filledDailyOrders = collect([]);
+        for ($i = 29; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $existing = $dailyOrders->firstWhere('date', $date);
+            $filledDailyOrders->push([
+                'date' => Carbon::parse($date)->format('M d'),
+                'value' => $existing ? $existing->count : 0,
+            ]);
+        }
+
         // Top Categories
         $totalItemsSold = \App\Models\OrderItem::sum('quantity');
         $topCategories = \App\Models\Category::select('categories.name')
@@ -124,17 +189,23 @@ class DashboardController extends Controller
                 'orders' => $totalOrders,
                 'revenue' => $totalRevenue,
                 'users' => $totalUsers,
-                'products_total' => $totalProducts,
-                'products_active' => $activeProducts,
-                'products_out_of_stock' => $outOfStockProducts,
-                'products_total_stock' => $totalStock,
+                'products' => $totalProducts,
+                'active_products' => $activeProducts,
+                'out_of_stock' => $outOfStockProducts,
+                'total_stock' => $totalStock,
+                'growth' => [
+                    'revenue' => round($revenueGrowth, 1),
+                    'orders' => round($ordersGrowth, 1),
+                    'users' => round($usersGrowth, 1),
+                ]
             ],
             'charts' => [
-                'orders_by_day' => $ordersByDay,
                 'monthly_revenue' => $filledMonthlyRevenue,
+                'daily_orders' => $filledDailyOrders,
             ],
             'topCategories' => $topCategories,
             'recentOrders' => $recentOrders,
+            'topProducts' => $topProducts,
         ]);
     }
 }

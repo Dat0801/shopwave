@@ -125,4 +125,42 @@ class CartController extends Controller
 
         return redirect()->back()->with('success', 'Item removed.');
     }
+
+    public function applyCoupon(Request $request): RedirectResponse
+    {
+        $request->validate(['code' => 'required|string']);
+        $code = $request->input('code');
+
+        $coupon = Coupon::where('code', $code)->first();
+
+        if (! $coupon) {
+            return redirect()->back()->with('error', 'Invalid coupon code.');
+        }
+
+        if (! $coupon->isValid()) {
+            return redirect()->back()->with('error', 'Coupon is expired or invalid.');
+        }
+
+        // Check min order amount
+        $cart = $this->cart($request);
+        $total = 0;
+        foreach ($cart as $item) {
+            $total += $item['price'] * $item['quantity'];
+        }
+
+        if ($coupon->min_order_amount && $total < $coupon->min_order_amount) {
+            return redirect()->back()->with('error', 'Minimum order amount for this coupon is '.$coupon->min_order_amount);
+        }
+
+        $request->session()->put('coupon_code', $code);
+
+        return redirect()->back()->with('success', 'Coupon applied successfully.');
+    }
+
+    public function removeCoupon(Request $request): RedirectResponse
+    {
+        $request->session()->forget('coupon_code');
+
+        return redirect()->back()->with('success', 'Coupon removed.');
+    }
 }

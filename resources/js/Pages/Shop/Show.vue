@@ -4,9 +4,17 @@ import Button from '@/Components/Button.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { getImageUrl } from '@/Utils/image';
+import Modal from '@/Components/Modal.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import TextArea from '@/Components/TextArea.vue'; // Assuming I have this or use textarea
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import ProductCard from '@/Components/Shop/ProductCard.vue';
 
 const props = defineProps({
     product: Object,
+    relatedProducts: Array,
 });
 
 const form = useForm({
@@ -355,46 +363,96 @@ const addToCart = () => {
                     </div>
 
                     <div class="mt-8">
-                        <button class="w-full flex items-center justify-center rounded-lg border border-gray-300 bg-white px-8 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        <button 
+                            v-if="user"
+                            @click="showReviewForm = true"
+                            class="w-full flex items-center justify-center rounded-lg border border-gray-300 bg-white px-8 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        >
                             Write a Review
                         </button>
+                        <Link
+                            v-else
+                            :href="route('login')"
+                            class="w-full flex items-center justify-center rounded-lg border border-gray-300 bg-white px-8 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        >
+                            Login to Review
+                        </Link>
                     </div>
                 </div>
 
                 <!-- Review List -->
                 <div class="w-full md:w-2/3 space-y-8">
-                    <div v-for="review in reviews" :key="review.id" class="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
-                        <div class="flex items-center justify-between">
-                            <div class="flex text-blue-500">
-                                <svg v-for="i in 5" :key="i" class="h-4 w-4 flex-shrink-0 fill-current" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                            </div>
-                            <span class="text-sm text-gray-400">{{ review.date }}</span>
-                        </div>
-                        <h4 class="mt-2 text-base font-bold text-gray-900">{{ review.title }}</h4>
-                        <p class="mt-2 text-sm text-gray-600 leading-relaxed italic">"{{ review.content }}"</p>
-                        <div class="mt-4 flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">
-                                {{ review.author.split(' ').map(n => n[0]).join('') }}
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold text-gray-900">{{ review.author }}</p>
-                                <p v-if="review.verified" class="text-[10px] text-green-600 flex items-center gap-1">
-                                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    <div v-if="product.reviews && product.reviews.length > 0">
+                        <div v-for="review in product.reviews" :key="review.id" class="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex text-blue-500">
+                                    <svg v-for="i in 5" :key="i" class="h-4 w-4 flex-shrink-0" :class="i <= review.rating ? 'fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
-                                    Verified Purchase
-                                </p>
+                                </div>
+                                <span class="text-sm text-gray-400">{{ new Date(review.created_at).toLocaleDateString() }}</span>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600 leading-relaxed italic">"{{ review.comment }}"</p>
+                            <div class="mt-4 flex items-center gap-3">
+                                <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">
+                                    {{ review.user.name.split(' ').map(n => n[0]).join('') }}
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-900">{{ review.user.name }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <button class="text-sm font-medium text-blue-600 hover:text-blue-500 hover:underline">
-                        Load More Reviews
-                    </button>
+                    <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
+                        <p class="text-gray-500">No reviews yet. Be the first to review this product!</p>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Review Modal -->
+        <Modal :show="showReviewForm" @close="showReviewForm = false">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900">Write a Review</h2>
+                <form @submit.prevent="submitReview" class="mt-6 space-y-6">
+                    <div>
+                        <InputLabel for="rating" value="Rating" />
+                        <div class="flex items-center gap-2 mt-2">
+                            <button 
+                                type="button" 
+                                v-for="i in 5" 
+                                :key="i"
+                                @click="reviewForm.rating = i"
+                                class="focus:outline-none"
+                            >
+                                <svg class="h-8 w-8 transition-colors duration-200" :class="i <= reviewForm.rating ? 'text-yellow-400 fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p v-if="reviewForm.errors.rating" class="mt-2 text-sm text-red-600">{{ reviewForm.errors.rating }}</p>
+                    </div>
+
+                    <div>
+                        <InputLabel for="comment" value="Review" />
+                        <textarea
+                            id="comment"
+                            v-model="reviewForm.comment"
+                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                            rows="4"
+                            placeholder="Share your thoughts about this product..."
+                        ></textarea>
+                        <p v-if="reviewForm.errors.comment" class="mt-2 text-sm text-red-600">{{ reviewForm.errors.comment }}</p>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <SecondaryButton @click="showReviewForm = false">Cancel</SecondaryButton>
+                        <PrimaryButton :class="{ 'opacity-25': reviewForm.processing }" :disabled="reviewForm.processing">
+                            Submit Review
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
     </ShopLayout>
 </template>

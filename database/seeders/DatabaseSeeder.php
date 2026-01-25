@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -22,6 +23,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 0. Seed Settings
+        $settings = [
+            ['key' => 'site_name', 'value' => 'ShopWave', 'group' => 'general', 'type' => 'text'],
+            ['key' => 'site_description', 'value' => 'Your one-stop shop for everything.', 'group' => 'general', 'type' => 'textarea'],
+            ['key' => 'contact_email', 'value' => 'support@shopwave.com', 'group' => 'general', 'type' => 'email'],
+            ['key' => 'contact_phone', 'value' => '+1 (555) 123-4567', 'group' => 'general', 'type' => 'text'],
+            ['key' => 'address', 'value' => '123 Shop Street, Commerce City, CA 90210', 'group' => 'general', 'type' => 'text'],
+            ['key' => 'facebook_url', 'value' => 'https://facebook.com/shopwave', 'group' => 'social', 'type' => 'url'],
+            ['key' => 'instagram_url', 'value' => 'https://instagram.com/shopwave', 'group' => 'social', 'type' => 'url'],
+            ['key' => 'twitter_url', 'value' => 'https://twitter.com/shopwave', 'group' => 'social', 'type' => 'url'],
+        ];
+
+        foreach ($settings as $setting) {
+            Setting::firstOrCreate(['key' => $setting['key']], $setting);
+        }
+
         // 1. Create Users
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@shopwave.test'],

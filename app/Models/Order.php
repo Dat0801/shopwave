@@ -13,11 +13,20 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'total_price',
+        'discount_amount',
+        'coupon_code',
         'status',
+        'payment_method',
+        'payment_status',
+        'shipping_address',
+        'billing_address',
     ];
 
     protected $casts = [
         'total_price' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'shipping_address' => 'array',
+        'billing_address' => 'array',
     ];
 
     public function user(): BelongsTo

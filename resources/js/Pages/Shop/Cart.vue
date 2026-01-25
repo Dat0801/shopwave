@@ -30,9 +30,9 @@ const subtotal = computed(() => {
     return props.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 });
 
-const tax = computed(() => subtotal.value * 0.05); // Mock 5% tax
+const tax = computed(() => (subtotal.value - props.discount) * 0.05); // Mock 5% tax on discounted amount
 const shipping = 0; // Free shipping
-const grandTotal = computed(() => subtotal.value + tax.value + shipping);
+const grandTotal = computed(() => Math.max(0, subtotal.value - props.discount + tax.value + shipping));
 
 import { getImageUrl } from '@/Utils/image';
 const getProductImageUrl = (item) => {
