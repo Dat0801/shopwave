@@ -66,6 +66,19 @@ class OrderHistoryController extends Controller
         ]);
     }
 
+    public function show(Request $request, Order $order): Response
+    {
+        if ($order->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $order->load(['items.product']);
+
+        return Inertia::render('Orders/Show', [
+            'order' => $order,
+        ]);
+    }
+
     public function cancel(Request $request, Order $order): RedirectResponse
     {
         if ($order->user_id !== $request->user()->id) {

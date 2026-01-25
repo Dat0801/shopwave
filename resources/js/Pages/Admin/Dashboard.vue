@@ -9,15 +9,23 @@ const props = defineProps({
     charts: Object,
     topCategories: Array,
     recentOrders: Array,
+    topProducts: Array,
 });
 
 const topCategories = computed(() => props.topCategories || []);
 const recentOrders = computed(() => props.recentOrders || []);
+const topProducts = computed(() => props.topProducts || []);
 const monthlyRevenue = computed(() => props.charts?.monthly_revenue || []);
+const dailyOrders = computed(() => props.charts?.daily_orders || []);
 
 const maxRevenue = computed(() => {
     if (monthlyRevenue.value.length === 0) return 1;
     return Math.max(...monthlyRevenue.value.map(item => item.value));
+});
+
+const maxDailyOrders = computed(() => {
+    if (dailyOrders.value.length === 0) return 1;
+    return Math.max(...dailyOrders.value.map(item => item.value));
 });
 
 const formatCurrency = (value) => {
@@ -80,17 +88,18 @@ const formatNumber = (value) => {
                             </svg>
                         </div>
                     </div>
-                    <!-- 
-                    <div class="mt-4 flex items-center text-sm">
-                        <span class="flex items-center font-medium text-green-600">
-                             <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="mt-4 flex items-center text-sm" v-if="stats?.growth?.revenue !== undefined">
+                        <span class="flex items-center font-medium" :class="stats.growth.revenue >= 0 ? 'text-green-600' : 'text-red-600'">
+                             <svg v-if="stats.growth.revenue >= 0" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
-                            +12%
+                            <svg v-else class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                            </svg>
+                            {{ Math.abs(stats.growth.revenue) }}%
                         </span>
                         <span class="ml-2 text-gray-500">vs last month</span>
                     </div>
-                    -->
                 </div>
 
                 <!-- New Orders -->
@@ -106,17 +115,18 @@ const formatNumber = (value) => {
                             </svg>
                         </div>
                     </div>
-                    <!--
-                    <div class="mt-4 flex items-center text-sm">
-                        <span class="flex items-center font-medium text-green-600">
-                             <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="mt-4 flex items-center text-sm" v-if="stats?.growth?.orders !== undefined">
+                        <span class="flex items-center font-medium" :class="stats.growth.orders >= 0 ? 'text-green-600' : 'text-red-600'">
+                             <svg v-if="stats.growth.orders >= 0" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
-                            +5.2%
+                            <svg v-else class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                            </svg>
+                            {{ Math.abs(stats.growth.orders) }}%
                         </span>
                         <span class="ml-2 text-gray-500">vs last month</span>
                     </div>
-                    -->
                 </div>
 
                 <!-- Active Users -->
@@ -132,17 +142,18 @@ const formatNumber = (value) => {
                             </svg>
                         </div>
                     </div>
-                    <!--
-                    <div class="mt-4 flex items-center text-sm">
-                         <span class="flex items-center font-medium text-green-600">
-                             <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="mt-4 flex items-center text-sm" v-if="stats?.growth?.users !== undefined">
+                         <span class="flex items-center font-medium" :class="stats.growth.users >= 0 ? 'text-green-600' : 'text-red-600'">
+                             <svg v-if="stats.growth.users >= 0" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
-                            +8%
+                            <svg v-else class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                            </svg>
+                            {{ Math.abs(stats.growth.users) }}%
                         </span>
-                        <span class="ml-2 text-gray-500">vs last week</span>
+                        <span class="ml-2 text-gray-500">vs last month</span>
                     </div>
-                    -->
                 </div>
             </div>
 
@@ -195,6 +206,64 @@ const formatNumber = (value) => {
                     <button class="mt-8 w-full rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         View Detailed Report
                     </button>
+                </div>
+            </div>
+
+            <!-- New Row: Daily Orders & Top Products -->
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <!-- Daily Orders Chart -->
+                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Daily Orders</h3>
+                            <p class="text-sm text-gray-500">Orders trend for last 30 days</p>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex h-64 items-end justify-between gap-1">
+                         <div v-for="(item, index) in dailyOrders" :key="item.date" class="group flex w-full flex-col items-center gap-1">
+                             <div class="relative w-full rounded-t-sm bg-indigo-500 transition-all duration-300 hover:opacity-80" 
+                                  :class="item.value === 0 ? 'h-0.5 bg-gray-100' : ''"
+                                  :style="{ height: item.value > 0 ? `${(item.value / maxDailyOrders) * 100}%` : '4px' }">
+                                  <!-- Tooltip -->
+                                  <div class="absolute -top-10 left-1/2 hidden -translate-x-1/2 transform rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block whitespace-nowrap z-10 shadow-lg">
+                                      {{ item.value }} orders <span class="text-gray-400">|</span> {{ item.date }}
+                                  </div>
+                             </div>
+                             <!-- Show date only for every 5th item or first/last to avoid clutter -->
+                             <span v-if="index % 5 === 0 || index === dailyOrders.length - 1" class="text-[10px] text-gray-400">{{ item.date }}</span>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Top Products -->
+                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+                    <h3 class="text-lg font-bold text-gray-900">Top Products</h3>
+                    <div class="mt-6 space-y-5">
+                        <div v-for="product in topProducts" :key="product.id" class="flex items-center gap-4">
+                            <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
+                                <img v-if="product.image" :src="product.image" :alt="product.name" class="h-full w-full object-cover" />
+                                <div v-else class="flex h-full w-full items-center justify-center text-gray-400">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="truncate text-sm font-medium text-gray-900" :title="product.name">{{ product.name }}</p>
+                                <p class="text-xs text-gray-500">{{ formatCurrency(product.price) }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-900">{{ product.sold }}</p>
+                                <p class="text-xs text-gray-500">sold</p>
+                            </div>
+                        </div>
+                        <div v-if="topProducts.length === 0" class="text-center text-sm text-gray-500 py-4">
+                            No sales data yet.
+                        </div>
+                    </div>
+                    <Link :href="route('admin.products.index')" class="mt-6 block w-full rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        View All Products
+                    </Link>
                 </div>
             </div>
 

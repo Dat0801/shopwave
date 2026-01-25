@@ -15,12 +15,13 @@ const props = defineProps({
 
 // State for filters
 const selectedCategory = ref(props.filters.category || null);
-const priceRange = ref([0, 350]); // Mock range
-const selectedSizes = ref([]);
-const selectedColors = ref([]);
+const selectedSort = ref(props.filters.sort || 'newest');
+const minPrice = ref(props.filters.min_price || '');
+const maxPrice = ref(props.filters.max_price || '');
+const selectedSizes = ref(props.filters.size ? (Array.isArray(props.filters.size) ? props.filters.size : [props.filters.size]) : []);
 
 // Mock Data for UI (since backend doesn't support these yet)
-const sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL'];
+const sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '40', '41', '42', '43', '44'];
 const colors = [
     { name: 'Black', class: 'bg-black' },
     { name: 'White', class: 'bg-white border border-gray-200' },
@@ -37,7 +38,11 @@ const updateFilters = () => {
     router.get(route('shop.index'), {
         category: selectedCategory.value,
         search: props.filters.search,
-        // price: priceRange.value, // TODO: Implement backend
+        min_price: minPrice.value,
+        max_price: maxPrice.value,
+        size: selectedSizes.value,
+        color: selectedColors.value,
+        sort: selectedSort.value,
     }, {
         preserveState: true,
         preserveScroll: true,
@@ -56,6 +61,9 @@ const toggleCategory = (slug) => {
 
 const clearFilters = () => {
     selectedCategory.value = null;
+    minPrice.value = '';
+    maxPrice.value = '';
+    selectedSizes.value = [];
     updateFilters();
 };
 
@@ -158,61 +166,64 @@ const clearFilters = () => {
                                 Price Range
                             </h4>
                             <div class="space-y-4">
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="500" 
-                                    step="10" 
-                                    v-model="priceRange[1]" 
-                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                >
-                                <div class="flex items-center justify-between text-sm text-gray-600">
-                                    <span>${{ priceRange[0] }}</span>
-                                    <span>${{ priceRange[1] }}</span>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs text-gray-500">Min</label>
+                                        <input 
+                                            type="number" 
+                                            v-model="minPrice" 
+                                            placeholder="0"
+                                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        >
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500">Max</label>
+                                        <input 
+                                            type="number" 
+                                            v-model="maxPrice" 
+                                            placeholder="1000"
+                                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        >
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Size -->
+                        <!-- Size Filter -->
                         <div>
                             <h4 class="flex items-center gap-2 font-bold text-blue-600 mb-4 text-sm uppercase tracking-wider">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                                  <path fill-rule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75ZM2 10a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 10Zm0 5.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                  <path fill-rule="evenodd" d="M10 2a.75.75 0 0 1 .75.75v14.5a.75.75 0 0 1-1.5 0V2.75A.75.75 0 0 1 10 2Z" clip-rule="evenodd" />
+                                  <path fill-rule="evenodd" d="M2.75 10a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H3.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
                                 </svg>
                                 Size
                             </h4>
-                            <div class="grid grid-cols-4 gap-2">
-                                <button 
-                                    v-for="size in sizes" 
-                                    :key="size"
-                                    class="flex items-center justify-center py-2 text-sm font-medium border rounded-md hover:border-blue-600 hover:text-blue-600 transition-colors"
-                                    :class="selectedSizes.includes(size) ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-gray-200 text-gray-700'"
-                                >
-                                    {{ size }}
-                                </button>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label v-for="size in sizes" :key="size" class="flex items-center justify-center p-2 border rounded-md cursor-pointer hover:border-blue-500 transition-colors" :class="selectedSizes.includes(size) ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200'">
+                                    <input type="checkbox" :value="size" v-model="selectedSizes" class="sr-only">
+                                    <span class="text-sm font-medium">{{ size }}</span>
+                                </label>
                             </div>
                         </div>
 
-                        <!-- Color -->
+                        <!-- Color Filter -->
                         <div>
                             <h4 class="flex items-center gap-2 font-bold text-blue-600 mb-4 text-sm uppercase tracking-wider">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                                  <path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM6.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM13.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM8 13.5A1.5 1.5 0 1 1 5 13.5 1.5 1.5 0 0 1 8 13.5Zm7 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" clip-rule="evenodd" />
+                                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-1.5a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13Z" clip-rule="evenodd" />
                                 </svg>
                                 Color
                             </h4>
                             <div class="flex flex-wrap gap-3">
-                                <button 
-                                    v-for="color in colors" 
-                                    :key="color.name"
-                                    class="h-8 w-8 rounded-full shadow-sm ring-2 ring-offset-2 transition-all hover:scale-110"
-                                    :class="[color.class, selectedColors.includes(color.name) ? 'ring-blue-600' : 'ring-transparent']"
-                                    :title="color.name"
-                                ></button>
+                                <label v-for="color in colors" :key="color.name" class="relative cursor-pointer group">
+                                    <input type="checkbox" :value="color.name" v-model="selectedColors" class="sr-only">
+                                    <div class="w-8 h-8 rounded-full shadow-sm transition-transform group-hover:scale-110" :class="[color.class, selectedColors.includes(color.name) ? 'ring-2 ring-offset-2 ring-blue-500' : '']"></div>
+                                    <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-600 opacity-0 group-hover:opacity-100 whitespace-nowrap bg-white px-1 rounded shadow-sm">{{ color.name }}</span>
+                                </label>
                             </div>
                         </div>
 
-                        <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
+                        <button @click="updateFilters" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
                             Apply Filters
                         </button>
                     </div>

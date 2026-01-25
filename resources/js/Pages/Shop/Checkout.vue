@@ -140,10 +140,10 @@ const submit = () => {
                         <div class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
                             <div class="space-y-4">
                                 <!-- Credit Card Option -->
-                                <div class="rounded-md border" :class="paymentMethod === 'credit_card' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
-                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="paymentMethod = 'credit_card'">
+                                <div class="rounded-md border" :class="form.paymentMethod === 'credit_card' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
+                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="form.paymentMethod = 'credit_card'">
                                         <div class="flex items-center">
-                                            <input type="radio" name="payment-method" value="credit_card" v-model="paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <input type="radio" name="payment-method" value="credit_card" v-model="form.paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
                                             <label class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">Credit Card</label>
                                         </div>
                                         <svg class="h-5 w-6 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
@@ -153,7 +153,7 @@ const submit = () => {
                                     </div>
                                     
                                     <!-- Credit Card Details (Expandable) -->
-                                    <div v-if="paymentMethod === 'credit_card'" class="px-4 pb-4 pt-2 border-t border-gray-200/50 space-y-4">
+                                    <div v-if="form.paymentMethod === 'credit_card'" class="px-4 pb-4 pt-2 border-t border-gray-200/50 space-y-4">
                                         <div>
                                             <label for="card-number" class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Card Number</label>
                                             <input type="text" id="card-number" v-model="form.cardNumber" placeholder="0000 0000 0000 0000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3">
@@ -172,14 +172,27 @@ const submit = () => {
                                 </div>
 
                                 <!-- PayPal Option -->
-                                <div class="rounded-md border" :class="paymentMethod === 'paypal' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
-                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="paymentMethod = 'paypal'">
+                                <div class="rounded-md border" :class="form.paymentMethod === 'paypal' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
+                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="form.paymentMethod = 'paypal'">
                                         <div class="flex items-center">
-                                            <input type="radio" name="payment-method" value="paypal" v-model="paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <input type="radio" name="payment-method" value="paypal" v-model="form.paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
                                             <label class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">PayPal</label>
                                         </div>
                                         <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.946 5.425-3.646 6.794-8.263 6.794H10.3c-.578 0-1.075.418-1.17 1.009l-.506 3.454c-.024.175.006.356.104.496.098.14.258.223.428.223h3.29c.578 0 1.075.418 1.17 1.009l.157 1.074a.641.641 0 0 1-.633.742h-6.064a.641.641 0 0 1-.633-.74l.662-4.563-1.033 6.467a.641.641 0 0 1-.633.74z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- COD Option -->
+                                <div class="rounded-md border" :class="form.paymentMethod === 'cod' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
+                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="form.paymentMethod = 'cod'">
+                                        <div class="flex items-center">
+                                            <input type="radio" name="payment-method" value="cod" v-model="form.paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">Cash on Delivery</label>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </div>
                                 </div>
@@ -219,9 +232,25 @@ const submit = () => {
                         <!-- Discount Code -->
                         <div class="mt-8 border-t border-gray-200 pt-6">
                             <div class="flex gap-2">
-                                <input type="text" v-model="discountCode" placeholder="Discount Code" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3 bg-gray-50/50">
-                                <button type="button" class="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Apply</button>
+                                <input 
+                                    type="text" 
+                                    v-model="discountCode" 
+                                    placeholder="Discount Code" 
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3 bg-gray-50/50"
+                                    @keyup.enter="applyCoupon"
+                                >
+                                <button 
+                                    type="button" 
+                                    @click="applyCoupon"
+                                    :disabled="couponForm.processing"
+                                    class="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
+                                >
+                                    Apply
+                                </button>
                             </div>
+                            <p v-if="couponForm.errors.code" class="mt-2 text-sm text-red-600">
+                                {{ couponForm.errors.code }}
+                            </p>
                         </div>
 
                         <!-- Price Breakdown -->
@@ -229,6 +258,10 @@ const submit = () => {
                             <div class="flex items-center justify-between">
                                 <dt class="text-gray-600">Subtotal</dt>
                                 <dd>${{ subtotal.toFixed(2) }}</dd>
+                            </div>
+                            <div v-if="discount > 0" class="flex items-center justify-between text-green-600">
+                                <dt>Discount</dt>
+                                <dd>-${{ discount.toFixed(2) }}</dd>
                             </div>
                             <div class="flex items-center justify-between">
                                 <dt class="text-gray-600">Shipping</dt>
