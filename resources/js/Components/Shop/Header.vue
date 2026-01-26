@@ -39,8 +39,9 @@ const handleSearch = () => {
                 <nav class="flex items-center gap-8 text-base font-semibold text-gray-900">
                     <Link v-if="isAdmin" :href="route('admin.dashboard')" class="text-indigo-600 hover:text-indigo-700 transition-colors">Admin</Link>
                     <Link :href="route('shop.index')" class="hover:text-blue-600 transition-colors">Shop</Link>
-                    <a href="#" class="hover:text-blue-600 transition-colors">Blog</a>
-                    <a href="#" class="hover:text-blue-600 transition-colors">About</a>
+                    <a href="#" class="hover:text-blue-600 transition-colors">Categories</a>
+                    <Link :href="route('blog.index')" class="hover:text-blue-600 transition-colors">Blog</Link>
+                    <Link :href="route('contact.index')" class="hover:text-blue-600 transition-colors">Contact Us</Link>
                 </nav>
                 <div class="relative w-full max-w-sm">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">

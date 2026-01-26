@@ -39,6 +39,39 @@ class DatabaseSeeder extends Seeder
             Setting::firstOrCreate(['key' => $setting['key']], $setting);
         }
 
+        // 0.1 Seed Pages
+        \App\Models\Page::firstOrCreate(
+            ['slug' => 'about-us'],
+            [
+                'title' => 'About Us',
+                'content' => 'ShopWave started in a small garage in 2018 with one simple goal: to make high-quality artisan goods accessible to everyone.',
+                'meta' => [
+                    'story_headline' => 'Founded on the principle of accessibility.',
+                    'team' => [
+                        [
+                            'name' => 'Sarah Jenkins',
+                            'role' => 'CEO & Founder',
+                            'image' => 'https://ui-avatars.com/api/?name=Sarah+Jenkins&background=0D8ABC&color=fff',
+                        ]
+                    ],
+                    'values' => [
+                        [
+                            'title' => 'Customer First',
+                            'description' => 'We obsess over our customers\' success and happiness.',
+                            'icon' => 'heart',
+                        ],
+                        [
+                            'title' => 'Sustainability',
+                            'description' => 'We believe in creating a better planet through ethical sourcing.',
+                            'icon' => 'leaf',
+                        ]
+                    ],
+                    'seo_title' => 'About ShopWave | Our Story, Mission and Global Team',
+                    'seo_description' => 'Discover the story behind ShopWave, our commitment to sustainability, and the amazing team building the future of artisan commerce.',
+                ]
+            ]
+        );
+
         // 1. Create Users
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@shopwave.test'],

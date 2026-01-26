@@ -1,11 +1,73 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
 
 defineProps({
     showingNavigationDropdown: {
         type: Boolean,
         default: false,
     },
+});
+
+const openGroups = ref({});
+
+const toggleGroup = (groupName) => {
+    openGroups.value[groupName] = !openGroups.value[groupName];
+};
+
+const navigation = [
+    {
+        name: 'Dashboard',
+        href: route('admin.dashboard'),
+        icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z',
+        active: () => route().current('admin.dashboard')
+    },
+    {
+        name: 'Product Management',
+        icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+        children: [
+            { name: 'Products', href: route('admin.products.index'), active: () => route().current('admin.products.*') },
+            { name: 'Categories', href: route('admin.categories.index'), active: () => route().current('admin.categories.*') },
+            { name: 'Reviews', href: route('admin.reviews.index'), active: () => route().current('admin.reviews.*') },
+            { name: 'Coupons', href: route('admin.coupons.index'), active: () => route().current('admin.coupons.*') },
+        ]
+    },
+    {
+        name: 'Order Management',
+        icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z',
+        children: [
+            { name: 'Orders', href: route('admin.orders.index'), active: () => route().current('admin.orders.*') },
+            { name: 'Customers', href: route('admin.customers.index'), active: () => route().current('admin.customers.*') },
+        ]
+    },
+    {
+        name: 'Content',
+        icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z',
+        children: [
+             { name: 'Banners', href: route('admin.banners.index'), active: () => route().current('admin.banners.*') },
+             { name: 'Blog', href: route('admin.blog.index'), active: () => route().current('admin.blog.*') },
+             { name: 'Pages', href: route('admin.pages.index'), active: () => route().current('admin.pages.*') },
+        ]
+    },
+    {
+        name: 'System',
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+        children: [
+            { name: 'Settings', href: route('admin.settings.index'), active: () => route().current('admin.settings.*') },
+        ]
+    }
+];
+
+// Initialize open groups based on active route
+onMounted(() => {
+    navigation.forEach(item => {
+        if (item.children) {
+            const hasActiveChild = item.children.some(child => child.active());
+            if (hasActiveChild) {
+                openGroups.value[item.name] = true;
+            }
+        }
+    });
 });
 </script>
 
@@ -27,76 +89,60 @@ defineProps({
 
         <div class="p-4 space-y-1 overflow-y-auto h-[calc(100vh-4rem)] flex flex-col">
             <nav class="space-y-1 flex-1">
-                <Link :href="route('admin.dashboard')" :class="{'bg-blue-50 text-blue-600': route().current('admin.dashboard'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.dashboard')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    Dashboard
-                </Link>
+                <template v-for="item in navigation" :key="item.name">
+                    <!-- Single Link -->
+                    <Link
+                        v-if="!item.children"
+                        :href="item.href"
+                        :class="{'bg-blue-50 text-blue-600': item.active(), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !item.active()}"
+                        class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.icon" />
+                        </svg>
+                        {{ item.name }}
+                    </Link>
 
-                <Link :href="route('admin.banners.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.banners.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.banners.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Banners
-                </Link>
+                    <!-- Group -->
+                    <div v-else class="space-y-1">
+                        <button
+                            @click="toggleGroup(item.name)"
+                            class="flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                            :class="{ 'text-gray-900': openGroups[item.name] }"
+                        >
+                            <div class="flex items-center gap-3">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.icon" />
+                                </svg>
+                                {{ item.name }}
+                            </div>
+                            <svg
+                                class="h-4 w-4 transition-transform duration-200"
+                                :class="{ 'rotate-180': openGroups[item.name] }"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
 
-                <Link :href="route('admin.orders.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.orders.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.orders.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    Orders
-                </Link>
-
-                <Link :href="route('admin.categories.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.categories.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.categories.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    Categories
-                </Link>
-
-                <Link :href="route('admin.products.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.products.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.products.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    Products
-                </Link>
-
-                <Link :href="route('admin.customers.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.customers.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.customers.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Customers
-                </Link>
-
-                    <Link :href="route('admin.coupons.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.coupons.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.coupons.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                    </svg>
-                    Coupons
-                </Link>
-
-                <Link :href="route('admin.reviews.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.reviews.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.reviews.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    Reviews
-                </Link>
-
-                <Link :href="route('admin.settings.index')" :class="{'bg-blue-50 text-blue-600': route().current('admin.settings.*'), 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !route().current('admin.settings.*')}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Settings
-                </Link>
-
-                <Link href="#" class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Analytics
-                </Link>
+                        <div
+                            v-show="openGroups[item.name]"
+                            class="space-y-1 pl-11 pr-2 transition-all duration-200"
+                        >
+                            <Link
+                                v-for="child in item.children"
+                                :key="child.name"
+                                :href="child.href"
+                                :class="{'text-blue-600 font-medium': child.active(), 'text-gray-500 hover:text-gray-900': !child.active()}"
+                                class="block rounded-lg py-2 text-sm transition-colors"
+                            >
+                                {{ child.name }}
+                            </Link>
+                        </div>
+                    </div>
+                </template>
 
                 <div class="my-2 border-t border-gray-100"></div>
 
