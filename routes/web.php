@@ -22,6 +22,14 @@ use Inertia\Inertia;
 Route::get('/', WelcomeController::class)->name('home');
 
 Route::get('/shop', [ShopProductController::class, 'index'])->name('shop.index');
+Route::get('/about-us', function () {
+    $page = \App\Models\Page::where('slug', 'about-us')->firstOrFail();
+    return Inertia::render('About', ['page' => $page]);
+})->name('about');
+Route::get('/contact', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact.index');
+Route::get('/blog', [\App\Http\Controllers\Shop\BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{slug}', [\App\Http\Controllers\Shop\BlogController::class, 'show'])->name('blog.show');
+
 
 Route::get('/products/{product:slug}', [ShopProductController::class, 'show'])
     ->name('shop.show');
@@ -84,6 +92,10 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::delete('reviews/{review}', [\App\Http\Controllers\Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+        Route::resource('blog', \App\Http\Controllers\Admin\BlogController::class);
+        Route::get('pages', [\App\Http\Controllers\Admin\PageController::class, 'index'])->name('pages.index');
+        Route::get('pages/{page}/edit', [\App\Http\Controllers\Admin\PageController::class, 'edit'])->name('pages.edit');
+        Route::put('pages/{page}', [\App\Http\Controllers\Admin\PageController::class, 'update'])->name('pages.update');
     });
 
 require __DIR__.'/auth.php';

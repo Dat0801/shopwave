@@ -1,4 +1,5 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
 </script>
 
 <template>
@@ -56,7 +57,7 @@
                         <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Our Story</a></li>
                         <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Sustainability</a></li>
                         <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Careers</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Contact</a></li>
+                        <li><Link :href="route('contact.index')" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Contact</Link></li>
                     </ul>
                 </div>
             </div>
