@@ -1,5 +1,7 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
 </script>
 
 <template>
@@ -33,33 +35,47 @@ import { Link } from '@inertiajs/vue3';
                         </a>
                     </div>
                 </div>
-                <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">Shop</h3>
-                    <ul class="mt-6 space-y-4">
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">All Products</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Featured Drops</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Men's Apparel</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Women's Apparel</a></li>
-                    </ul>
-                </div>
+
+                <template v-if="page.props.navigation?.footer?.length">
+                    <div v-for="column in page.props.navigation.footer" :key="column.id">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">{{ column.name }}</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li v-for="link in column.children" :key="link.id">
+                                <Link :href="link.href" class="text-base text-gray-500 hover:text-gray-900 transition-colors">{{ link.name }}</Link>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+
+                <template v-else>
                     <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">Support</h3>
-                    <ul class="mt-6 space-y-4">
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Help Center</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Shipping & Returns</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Size Guide</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Track Order</a></li>
-                    </ul>
-                </div>
-                    <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">Company</h3>
-                    <ul class="mt-6 space-y-4">
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Our Story</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Sustainability</a></li>
-                        <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Careers</a></li>
-                        <li><Link :href="route('contact.index')" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Contact</Link></li>
-                    </ul>
-                </div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">Shop</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">All Products</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Featured Drops</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Men's Apparel</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Women's Apparel</a></li>
+                        </ul>
+                    </div>
+                        <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">Support</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Help Center</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Shipping & Returns</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Size Guide</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Track Order</a></li>
+                        </ul>
+                    </div>
+                        <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900">Company</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Our Story</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Sustainability</a></li>
+                            <li><a href="#" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Careers</a></li>
+                            <li><Link :href="route('contact.index')" class="text-base text-gray-500 hover:text-gray-900 transition-colors">Contact</Link></li>
+                        </ul>
+                    </div>
+                </template>
             </div>
             <div class="mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
                 <p class="text-sm text-gray-400">

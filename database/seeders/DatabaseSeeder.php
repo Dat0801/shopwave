@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // 0.1 Seed Pages
+        $this->call(NavigationSeeder::class);
         \App\Models\Page::firstOrCreate(
             ['slug' => 'about-us'],
             [

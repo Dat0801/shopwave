@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Models\NavigationItem;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -41,6 +42,32 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+            ],
+            'navigation' => [
+                'header' => NavigationItem::where('location', 'header')
+                    ->where('is_active', true)
+                    ->whereNull('parent_id')
+                    ->with(['children' => function($query) {
+                        $query->where('is_active', true)->orderBy('order');
+                    }])
+                    ->orderBy('order')
+                    ->get(),
+                'footer' => NavigationItem::where('location', 'footer')
+                    ->where('is_active', true)
+                    ->whereNull('parent_id')
+                    ->with(['children' => function($query) {
+                        $query->where('is_active', true)->orderBy('order');
+                    }])
+                    ->orderBy('order')
+                    ->get(),
+                'mobile' => NavigationItem::where('location', 'mobile')
+                    ->where('is_active', true)
+                    ->whereNull('parent_id')
+                    ->with(['children' => function($query) {
+                        $query->where('is_active', true)->orderBy('order');
+                    }])
+                    ->orderBy('order')
+                    ->get(),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
