@@ -9,6 +9,7 @@ const isAdmin = computed(() => page.props.auth.user?.role === 'admin');
 const cartCount = computed(() => (page.props.cart ? page.props.cart.count : 0));
 
 const search = ref(page.props.filters?.search || '');
+const isMobileMenuOpen = ref(false);
 
 const handleSearch = () => {
     router.get(route('shop.index'), {
@@ -38,10 +39,43 @@ const handleSearch = () => {
             <div class="hidden flex-1 items-center justify-center gap-12 md:flex">
                 <nav class="flex items-center gap-8 text-base font-semibold text-gray-900">
                     <Link v-if="isAdmin" :href="route('admin.dashboard')" class="text-indigo-600 hover:text-indigo-700 transition-colors">Admin</Link>
-                    <Link :href="route('shop.index')" class="hover:text-blue-600 transition-colors">Shop</Link>
-                    <a href="#" class="hover:text-blue-600 transition-colors">Categories</a>
-                    <Link :href="route('blog.index')" class="hover:text-blue-600 transition-colors">Blog</Link>
-                    <Link :href="route('contact.index')" class="hover:text-blue-600 transition-colors">Contact Us</Link>
+                    
+                    <template v-if="page.props.navigation?.header?.length">
+                        <div v-for="item in page.props.navigation.header" :key="item.id" class="relative group">
+                            <!-- Dropdown Trigger or Link -->
+                            <div v-if="item.children && item.children.length > 0">
+                                <button class="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                                    {{ item.name }}
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <!-- Dropdown Menu -->
+                                <div class="absolute top-full left-0 pt-4 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform group-hover:translate-y-0 translate-y-2">
+                                    <div class="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-2">
+                                        <Link 
+                                            v-for="child in item.children" 
+                                            :key="child.id" 
+                                            :href="child.href" 
+                                            class="block px-4 py-2.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                        >
+                                            {{ child.name }}
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                            <Link v-else :href="item.href" class="hover:text-blue-600 transition-colors">
+                                {{ item.name }}
+                            </Link>
+                        </div>
+                    </template>
+
+                    <!-- Fallback if no navigation items -->
+                    <template v-else>
+                         <Link :href="route('shop.index')" class="hover:text-blue-600 transition-colors">Shop</Link>
+                         <Link :href="route('blog.index')" class="hover:text-blue-600 transition-colors">Blog</Link>
+                         <Link :href="route('contact.index')" class="hover:text-blue-600 transition-colors">Contact Us</Link>
+                    </template>
                 </nav>
                 <div class="relative w-full max-w-sm">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -98,6 +132,68 @@ const handleSearch = () => {
                         </span>
                     </div>
                 </Link>
+
+                <!-- Mobile Menu Button -->
+                <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="md:hidden text-gray-900 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div v-if="isMobileMenuOpen" class="fixed inset-0 z-50 bg-white md:hidden overflow-y-auto">
+            <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between px-4 h-20 border-b border-gray-100">
+                    <span class="font-bold text-2xl tracking-tight text-gray-900">Menu</span>
+                    <button @click="isMobileMenuOpen = false" class="text-gray-900 hover:text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex-1 py-6 px-4 space-y-6">
+                    <!-- Search Mobile -->
+                    <div class="relative">
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            class="w-full rounded-full border-0 bg-gray-100 py-3 pl-11 pr-4 text-base text-gray-900 placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-blue-600"
+                            v-model="search"
+                            @keydown.enter="handleSearch"
+                        />
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Links -->
+                    <nav class="flex flex-col gap-4">
+                        <template v-if="page.props.navigation?.mobile?.length">
+                            <div v-for="item in page.props.navigation.mobile" :key="item.id">
+                                <div v-if="item.children && item.children.length > 0">
+                                    <div class="font-bold text-lg text-gray-900 mb-2">{{ item.name }}</div>
+                                    <div class="pl-4 flex flex-col gap-3 border-l-2 border-gray-100">
+                                        <Link v-for="child in item.children" :key="child.id" :href="child.href" class="text-base text-gray-600 hover:text-blue-600 block">
+                                            {{ child.name }}
+                                        </Link>
+                                    </div>
+                                </div>
+                                <Link v-else :href="item.href" class="font-bold text-lg text-gray-900 hover:text-blue-600 block">
+                                    {{ item.name }}
+                                </Link>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <Link :href="route('shop.index')" class="font-bold text-lg text-gray-900 hover:text-blue-600">Shop</Link>
+                            <Link :href="route('blog.index')" class="font-bold text-lg text-gray-900 hover:text-blue-600">Blog</Link>
+                            <Link :href="route('contact.index')" class="font-bold text-lg text-gray-900 hover:text-blue-600">Contact Us</Link>
+                        </template>
+                    </nav>
+                </div>
             </div>
         </div>
     </header>

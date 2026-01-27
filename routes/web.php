@@ -96,6 +96,13 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('pages', [\App\Http\Controllers\Admin\PageController::class, 'index'])->name('pages.index');
         Route::get('pages/{page}/edit', [\App\Http\Controllers\Admin\PageController::class, 'edit'])->name('pages.edit');
         Route::put('pages/{page}', [\App\Http\Controllers\Admin\PageController::class, 'update'])->name('pages.update');
+
+        // Navigation Management
+        Route::get('navigations', [\App\Http\Controllers\Admin\NavigationController::class, 'index'])->name('navigations.index');
+        Route::post('navigations', [\App\Http\Controllers\Admin\NavigationController::class, 'store'])->name('navigations.store');
+        Route::put('navigations/{navigation}', [\App\Http\Controllers\Admin\NavigationController::class, 'update'])->name('navigations.update');
+        Route::delete('navigations/{navigation}', [\App\Http\Controllers\Admin\NavigationController::class, 'destroy'])->name('navigations.destroy');
+        Route::post('navigations/reorder', [\App\Http\Controllers\Admin\NavigationController::class, 'reorder'])->name('navigations.reorder');
     });
 
 require __DIR__.'/auth.php';
