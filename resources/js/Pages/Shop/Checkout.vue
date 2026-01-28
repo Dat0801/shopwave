@@ -29,6 +29,10 @@ const props = defineProps({
         type: Number,
         default: 165.00
     },
+    discount: {
+        type: Number,
+        default: 0
+    }
 });
 
 const form = useForm({
@@ -45,15 +49,33 @@ const form = useForm({
     cardCvc: '',
 });
 
+const couponForm = useForm({
+    code: ''
+});
+
 const paymentMethod = ref('credit_card');
-const discountCode = ref('');
 
 const subtotal = computed(() => {
     return props.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
 });
 const shipping = 0;
 const taxes = 13.20;
-const grandTotal = computed(() => subtotal.value + shipping + taxes);
+const grandTotal = computed(() => Math.max(0, subtotal.value - props.discount + shipping + taxes));
+
+import { getImageUrl } from '@/Utils/image';
+
+const getProductImageUrl = (item) => {
+    return getImageUrl(item.image_path || item.image, 150, 150);
+};
+
+const applyCoupon = () => {
+    couponForm.post(route('cart.coupon.apply'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            couponForm.reset();
+        }
+    });
+};
 
 const submit = () => {
     form.post(route('checkout.store'));
@@ -234,7 +256,7 @@ const submit = () => {
                             <div class="flex gap-2">
                                 <input 
                                     type="text" 
-                                    v-model="discountCode" 
+                                    v-model="couponForm.code" 
                                     placeholder="Discount Code" 
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3 bg-gray-50/50"
                                     @keyup.enter="applyCoupon"

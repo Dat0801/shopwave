@@ -5,27 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Review extends Model
+class PaymentMethod extends Model
 {
     protected $fillable = [
         'user_id',
-        'product_id',
-        'rating',
-        'comment',
-        'status',
+        'type',
+        'last4',
+        'holder_name',
+        'expiry_date',
+        'is_default',
+        'label',
     ];
 
     protected $casts = [
-        'rating' => 'integer',
+        'is_default' => 'boolean',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
     }
 }

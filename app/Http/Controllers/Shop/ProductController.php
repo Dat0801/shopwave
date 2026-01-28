@@ -84,7 +84,7 @@ class ProductController extends Controller
     public function show(Product $product): Response
     {
         $product->load(['category', 'variants', 'reviews' => function ($query) {
-            $query->where('is_approved', true)->with('user')->latest();
+            $query->where('status', 'approved')->with('user')->latest();
         }]);
 
         return Inertia::render('Shop/Show', [

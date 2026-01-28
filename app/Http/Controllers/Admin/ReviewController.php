@@ -14,24 +14,42 @@ class ReviewController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $reviews = Review::with(['user', 'product'])
-            ->latest()
-            ->paginate(10);
+        $query = Review::with(['user', 'product']);
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $reviews = $query->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        $stats = [
+            'total' => Review::count(),
+            'pending' => Review::where('status', 'pending')->count(),
+            'avg_rating' => round(Review::avg('rating') ?? 0, 1),
+        ];
 
         return Inertia::render('Admin/Reviews/Index', [
             'reviews' => $reviews,
+            'stats' => $stats,
+            'filters' => $request->only(['status']),
         ]);
     }
 
     /**
-     * Approve or reject the specified resource.
+     * Update the status of the specified resource.
      */
-    public function toggleApproval(Review $review): RedirectResponse
+    public function updateStatus(Request $request, Review $review): RedirectResponse
     {
+        $request->validate([
+            'status' => 'required|in:pending,approved,rejected',
+        ]);
+
         $review->update([
-            'is_approved' => !$review->is_approved,
+            'status' => $request->status,
         ]);
 
         return back()->with('success', 'Review status updated successfully.');

@@ -52,25 +52,74 @@ class OrderController extends Controller
     {
         $order->load(['user', 'items.product']);
 
+        // Customer Stats
+        $customerStats = [
+            'total_orders' => $order->user ? $order->user->orders()->count() : 0,
+            'total_spent' => $order->user ? $order->user->orders()->whereIn('status', ['paid', 'completed', 'shipped'])->sum('total_price') : 0,
+            'customer_since' => $order->user ? $order->user->created_at : null,
+        ];
+
+        // Mock Timeline (In a real app, this would come from an OrderHistory model)
+        $timeline = [
+            [
+                'id' => 1,
+                'title' => 'Order Placed',
+                'description' => "Order #SW-{$order->id} submitted by " . ($order->user ? $order->user->name : 'Guest'),
+                'date' => $order->created_at,
+                'icon' => 'cart',
+                'color' => 'blue',
+            ],
+        ];
+
+        if ($order->status !== 'pending') {
+             // Add more timeline events based on status if needed, 
+             // but for now we just show "Order Placed" and maybe "Payment Confirmed" if paid.
+             if (in_array($order->status, ['processing', 'paid', 'shipped', 'completed'])) {
+                $timeline[] = [
+                    'id' => 2,
+                    'title' => 'Payment Confirmed',
+                    'description' => 'Transaction verified via payment gateway.',
+                    'date' => $order->updated_at, // Approximation
+                    'icon' => 'credit-card',
+                    'color' => 'green',
+                ];
+             }
+             
+             if (in_array($order->status, ['processing', 'shipped', 'completed'])) {
+                $timeline[] = [
+                    'id' => 3,
+                    'title' => 'Processing for Shipping',
+                    'description' => 'Order marked as processing by Admin.',
+                    'date' => $order->updated_at, // Approximation
+                    'icon' => 'package',
+                    'color' => 'blue',
+                ];
+             }
+        }
+        
+        // Reverse to show newest first
+        $timeline = array_reverse($timeline);
+
         return Inertia::render('Admin/Orders/Show', [
             'order' => $order,
+            'customerStats' => $customerStats,
+            'timeline' => $timeline,
         ]);
     }
 
     public function update(Request $request, Order $order): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'status' => [
-                'required',
+                'nullable',
                 'string',
                 'max:255',
                 'in:pending,processing,paid,shipped,completed,cancelled',
             ],
+            'notes' => ['nullable', 'string'],
         ]);
 
-        $order->update([
-            'status' => $request->string('status'),
-        ]);
+        $order->update(array_filter($validated, fn($value) => !is_null($value)));
 
         return redirect()->back()->with('success', 'Order updated.');
     }
