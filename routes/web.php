@@ -27,6 +27,7 @@ Route::get('/about-us', function () {
     return Inertia::render('About', ['page' => $page]);
 })->name('about');
 Route::get('/contact', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact.index');
+Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
 Route::get('/blog', [\App\Http\Controllers\Shop\BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [\App\Http\Controllers\Shop\BlogController::class, 'show'])->name('blog.show');
 
@@ -60,7 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('addresses', AddressController::class)->except(['show', 'create', 'edit']);
 
     // Payment Methods
-    Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->name('payment-methods.index');
+    Route::resource('payment-methods', PaymentMethodController::class)->except(['create', 'edit', 'show']);
 
     // Wishlist Routes
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
@@ -88,7 +89,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index');
         Route::resource('coupons', \App\Http\Controllers\Admin\CouponController::class)->except(['show']);
         Route::get('reviews', [\App\Http\Controllers\Admin\ReviewController::class, 'index'])->name('reviews.index');
-        Route::patch('reviews/{review}/toggle-approval', [\App\Http\Controllers\Admin\ReviewController::class, 'toggleApproval'])->name('reviews.toggle-approval');
+        Route::patch('reviews/{review}/update-status', [\App\Http\Controllers\Admin\ReviewController::class, 'updateStatus'])->name('reviews.update-status');
         Route::delete('reviews/{review}', [\App\Http\Controllers\Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');

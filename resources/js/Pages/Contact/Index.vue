@@ -1,11 +1,15 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { Mail, Phone, MapPin, Facebook, Twitter, Globe, Send } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 const props = defineProps({
     page: Object
 });
+
+const page = usePage();
+const flash = computed(() => page.props.flash);
 
 const form = useForm({
     name: '',
@@ -15,17 +19,18 @@ const form = useForm({
 });
 
 const submit = () => {
-    // In a real app, this would post to a backend route
-    console.log('Form submitted:', form.data());
-    // For now, we just reset or show a success message mock
-    form.reset();
-    alert('Message sent! (This is a demo)');
+    form.post(route('contact.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset();
+        },
+    });
 };
 </script>
 
 <template>
-    <Head :title="page?.meta?.seo_title || 'Contact Us'">
-        <meta v-if="page?.meta?.seo_description" name="description" :content="page.meta.seo_description" />
+    <Head :title="props.page?.meta?.seo_title || 'Contact Us'">
+        <meta v-if="props.page?.meta?.seo_description" name="description" :content="props.page.meta.seo_description" />
     </Head>
 
     <ShopLayout>
@@ -39,9 +44,9 @@ const submit = () => {
                      <div class="absolute top-10 right-10 w-32 h-32 bg-blue-400 rounded-full opacity-20 blur-2xl"></div>
 
                     <div class="relative z-10">
-                        <h1 class="text-4xl font-bold mb-6">{{ page?.meta?.header_title || "Let's connect." }}</h1>
+                        <h1 class="text-4xl font-bold mb-6">{{ props.page?.meta?.header_title || "Let's connect." }}</h1>
                         <p class="text-blue-100 text-lg mb-12 max-w-md">
-                            {{ page?.meta?.header_description || "We're here to help you ride the wave of the latest fashion trends. Reach out to us for any queries about orders, styling, or collaborations." }}
+                            {{ props.page?.meta?.header_description || "We're here to help you ride the wave of the latest fashion trends. Reach out to us for any queries about orders, styling, or collaborations." }}
                         </p>
 
                         <div class="space-y-8">
@@ -101,15 +106,21 @@ const submit = () => {
                     <h2 class="text-2xl font-bold text-gray-900 mb-2">Send us a message</h2>
                     <p class="text-gray-500 mb-8">Fill out the form below and our team will get back to you within 24 hours.</p>
 
+                    <div v-if="flash.success" class="mb-6 p-4 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                        {{ flash.success }}
+                    </div>
+
                     <form @submit.prevent="submit" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="name" class="block text-sm font-bold text-gray-900 mb-2">Full Name</label>
                                 <input type="text" id="name" v-model="form.name" placeholder="John Doe" class="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-gray-50">
+                                <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">{{ form.errors.name }}</div>
                             </div>
                             <div>
                                 <label for="email" class="block text-sm font-bold text-gray-900 mb-2">Email Address</label>
                                 <input type="email" id="email" v-model="form.email" placeholder="john@example.com" class="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-gray-50">
+                                <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
                             </div>
                         </div>
 
@@ -118,8 +129,8 @@ const submit = () => {
                             <div class="relative">
                                 <select id="subject" v-model="form.subject" class="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-gray-50 appearance-none">
                                     <option value="" disabled selected>Select a subject</option>
-                                    <template v-if="page?.meta?.subjects && page.meta.subjects.length > 0">
-                                        <option v-for="subject in page.meta.subjects" :key="subject" :value="subject">
+                                    <template v-if="props.page?.meta?.subjects && props.page.meta.subjects.length > 0">
+                                        <option v-for="subject in props.page.meta.subjects" :key="subject" :value="subject">
                                             {{ subject }}
                                         </option>
                                     </template>
@@ -135,16 +146,18 @@ const submit = () => {
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
+                            <div v-if="form.errors.subject" class="text-red-500 text-sm mt-1">{{ form.errors.subject }}</div>
                         </div>
 
                         <div>
                             <label for="message" class="block text-sm font-bold text-gray-900 mb-2">Your Message</label>
                             <textarea id="message" v-model="form.message" rows="5" placeholder="How can we help you?" class="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-gray-50"></textarea>
+                            <div v-if="form.errors.message" class="text-red-500 text-sm mt-1">{{ form.errors.message }}</div>
                         </div>
 
-                        <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-blue-600/30">
-                            Send Message
-                            <Send class="w-4 h-4 ml-2" />
+                        <button type="submit" :disabled="form.processing" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-blue-600/30 disabled:opacity-50">
+                            {{ form.processing ? 'Sending...' : 'Send Message' }}
+                            <Send v-if="!form.processing" class="w-4 h-4 ml-2" />
                         </button>
                     </form>
                 </div>

@@ -20,11 +20,18 @@ class Order extends Model
         'payment_status',
         'shipping_address',
         'billing_address',
+        'notes',
+        'shipping_method',
+        'shipping_cost',
+        'tax_amount',
+        'transaction_id',
     ];
 
     protected $casts = [
         'total_price' => 'decimal:2',
         'discount_amount' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'shipping_address' => 'array',
         'billing_address' => 'array',
     ];

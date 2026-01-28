@@ -31,7 +31,38 @@ class SettingController extends Controller
         $data = $request->except(['_token', '_method']);
 
         foreach ($data as $key => $value) {
-            Setting::where('key', $key)->update(['value' => $value]);
+            if ($request->hasFile($key)) {
+                $path = $request->file($key)->storeOnCloudinary('shopwave/settings')->getSecurePath();
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $path, 'type' => 'image', 'group' => 'brand']
+                );
+            } else {
+                // Determine group based on key if creating new
+                $setting = Setting::where('key', $key)->first();
+                
+                // If existing setting is an image and value is null (no new file uploaded), skip update to preserve existing URL
+                if ($setting && $setting->type === 'image' && is_null($value)) {
+                    continue;
+                }
+
+                $group = $setting ? $setting->group : 'general';
+
+                if (!$setting) {
+                    if (str_contains($key, 'logo') || str_contains($key, 'favicon')) {
+                        $group = 'brand';
+                    } elseif (in_array($key, ['currency', 'timezone', 'locale'])) {
+                        $group = 'regional';
+                    } elseif (in_array($key, ['site_name', 'contact_email', 'seo_description'])) {
+                        $group = 'general';
+                    }
+                }
+
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $value, 'group' => $group]
+                );
+            }
         }
 
         return back()->with('success', 'Settings updated successfully.');

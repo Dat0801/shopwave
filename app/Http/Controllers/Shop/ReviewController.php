@@ -31,7 +31,7 @@ class ReviewController extends Controller
             'product_id' => $product->id,
             'rating' => $request->rating,
             'comment' => $request->comment,
-            'is_approved' => false, // Pending approval
+            'status' => 'pending',
         ]);
 
         return redirect()->back()->with('success', 'Review submitted successfully and is pending approval.');

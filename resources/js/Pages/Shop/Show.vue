@@ -1,7 +1,7 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import Button from '@/Components/Button.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { getImageUrl } from '@/Utils/image';
 import Modal from '@/Components/Modal.vue';
@@ -16,6 +16,10 @@ const props = defineProps({
     product: Object,
     relatedProducts: Array,
 });
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const showReviewForm = ref(false);
 
 const form = useForm({
     quantity: 1,
@@ -67,6 +71,31 @@ const reviews = [
         date: '1 month ago',
     },
 ];
+
+const totalReviews = computed(() => reviews.length);
+
+const averageRating = computed(() => {
+    if (totalReviews.value === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return (sum / totalReviews.value).toFixed(1);
+});
+
+const ratingCounts = computed(() => {
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    reviews.forEach(review => {
+        counts[review.rating] = (counts[review.rating] || 0) + 1;
+    });
+    return counts;
+});
+
+const ratingPercentages = computed(() => {
+    if (totalReviews.value === 0) return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const percentages = {};
+    for (let i = 1; i <= 5; i++) {
+        percentages[i] = Math.round((ratingCounts.value[i] / totalReviews.value) * 100);
+    }
+    return percentages;
+});
 
 // State
 const selectedColor = ref(colors[0]);
@@ -163,9 +192,9 @@ const addToCart = () => {
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                     </div>
-                    <span class="ml-3 text-sm font-medium text-gray-500">4.8</span>
+                    <span class="ml-3 text-sm font-medium text-gray-500">{{ reviews.length > 0 ? '4.8' : 'No ratings' }}</span>
                     <span class="ml-2 text-sm text-gray-400">|</span>
-                    <a href="#reviews" class="ml-2 text-sm text-gray-500 hover:text-blue-600 underline decoration-gray-300 underline-offset-2">128 Reviews</a>
+                    <a href="#reviews" class="ml-2 text-sm text-gray-500 hover:text-blue-600 underline decoration-gray-300 underline-offset-2">{{ reviews.length }} Reviews</a>
                 </div>
 
                 <!-- Price -->
@@ -375,79 +404,106 @@ const addToCart = () => {
                             :href="route('login')"
                             class="w-full flex items-center justify-center rounded-lg border border-gray-300 bg-white px-8 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >
-                            Login to Review
+                            Log in to Review
                         </Link>
                     </div>
                 </div>
 
-                <!-- Review List -->
+                <!-- Reviews List -->
                 <div class="w-full md:w-2/3 space-y-8">
-                    <div v-if="product.reviews && product.reviews.length > 0">
-                        <div v-for="review in product.reviews" :key="review.id" class="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
-                            <div class="flex items-center justify-between">
-                                <div class="flex text-blue-500">
-                                    <svg v-for="i in 5" :key="i" class="h-4 w-4 flex-shrink-0" :class="i <= review.rating ? 'fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                </div>
-                                <span class="text-sm text-gray-400">{{ new Date(review.created_at).toLocaleDateString() }}</span>
-                            </div>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed italic">"{{ review.comment }}"</p>
-                            <div class="mt-4 flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">
-                                    {{ review.user.name.split(' ').map(n => n[0]).join('') }}
-                                </div>
-                                <div>
-                                    <p class="text-xs font-bold text-gray-900">{{ review.user.name }}</p>
-                                </div>
+                    <div v-for="review in reviews" :key="review.id" class="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-gray-900">{{ review.title }}</h4>
+                            <span class="text-sm text-gray-500">{{ review.date }}</span>
+                        </div>
+                        <div class="mt-1 flex items-center">
+                            <div class="flex text-blue-500">
+                                <svg v-for="i in 5" :key="i" class="h-4 w-4 flex-shrink-0" :class="i <= review.rating ? 'fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
                             </div>
                         </div>
-                    </div>
-                    <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
-                        <p class="text-gray-500">No reviews yet. Be the first to review this product!</p>
+                        <p class="mt-4 text-gray-600 leading-relaxed">{{ review.content }}</p>
+                        <div class="mt-4 flex items-center gap-2">
+                            <span class="font-medium text-gray-900">{{ review.author }}</span>
+                            <span v-if="review.verified" class="flex items-center text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium border border-green-100">
+                                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                Verified Buyer
+                            </span>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        <div class="mt-24">
+            <h2 class="text-2xl font-bold tracking-tight text-gray-900">You May Also Like</h2>
+            <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
+                <ProductCard 
+                    v-for="related in relatedProducts" 
+                    :key="related.id" 
+                    :product="related" 
+                />
             </div>
         </div>
 
         <!-- Review Modal -->
         <Modal :show="showReviewForm" @close="showReviewForm = false">
             <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900">Write a Review</h2>
-                <form @submit.prevent="submitReview" class="mt-6 space-y-6">
+                <h2 class="text-lg font-medium text-gray-900">
+                    Write a Review for {{ product.name }}
+                </h2>
+                
+                <form @submit.prevent="submitReview" class="mt-6">
+                    <!-- Rating -->
                     <div>
-                        <InputLabel for="rating" value="Rating" />
-                        <div class="flex items-center gap-2 mt-2">
+                        <InputLabel value="Rating" />
+                        <div class="mt-2 flex items-center gap-2">
                             <button 
-                                type="button" 
-                                v-for="i in 5" 
-                                :key="i"
-                                @click="reviewForm.rating = i"
-                                class="focus:outline-none"
+                                v-for="star in 5" 
+                                :key="star"
+                                type="button"
+                                @click="reviewForm.rating = star"
+                                class="focus:outline-none transition-colors"
                             >
-                                <svg class="h-8 w-8 transition-colors duration-200" :class="i <= reviewForm.rating ? 'text-yellow-400 fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
+                                <svg 
+                                    class="h-8 w-8" 
+                                    :class="star <= reviewForm.rating ? 'text-yellow-400 fill-current' : 'text-gray-300 fill-current'" 
+                                    viewBox="0 0 20 20"
+                                >
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                 </svg>
                             </button>
+                            <span class="ml-2 text-sm text-gray-500 font-medium">{{ reviewForm.rating }} out of 5</span>
                         </div>
                         <p v-if="reviewForm.errors.rating" class="mt-2 text-sm text-red-600">{{ reviewForm.errors.rating }}</p>
                     </div>
 
-                    <div>
+                    <!-- Comment -->
+                    <div class="mt-6">
                         <InputLabel for="comment" value="Review" />
-                        <textarea
+                        <TextArea
                             id="comment"
                             v-model="reviewForm.comment"
-                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                             rows="4"
+                            class="mt-1 block w-full"
                             placeholder="Share your thoughts about this product..."
-                        ></textarea>
+                            required
+                        />
                         <p v-if="reviewForm.errors.comment" class="mt-2 text-sm text-red-600">{{ reviewForm.errors.comment }}</p>
                     </div>
 
                     <div class="mt-6 flex justify-end gap-3">
-                        <SecondaryButton @click="showReviewForm = false">Cancel</SecondaryButton>
-                        <PrimaryButton :class="{ 'opacity-25': reviewForm.processing }" :disabled="reviewForm.processing">
+                        <SecondaryButton @click="showReviewForm = false">
+                            Cancel
+                        </SecondaryButton>
+                        <PrimaryButton 
+                            :class="{ 'opacity-25': reviewForm.processing }" 
+                            :disabled="reviewForm.processing"
+                        >
                             Submit Review
                         </PrimaryButton>
                     </div>

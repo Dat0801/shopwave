@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Coupon;
 use App\Services\OrderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
