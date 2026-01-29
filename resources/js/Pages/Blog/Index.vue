@@ -7,15 +7,8 @@ const props = defineProps({
     featuredStory: Object,
     latestStories: Array,
     trendingPosts: Array,
+    shopTheLook: Object,
 });
-
-const shopTheLook = {
-    title: "Structured Linen Blazer",
-    collection: "Essential Collection",
-    price: 129.00,
-    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop",
-    link: "#"
-};
 
 const activeFilter = ref('All Posts');
 const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
@@ -154,7 +147,7 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
                         </div>
 
                         <!-- Shop The Look -->
-                        <div>
+                        <div v-if="shopTheLook">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900 mb-6">Shop The Look</h3>
                             <div class="bg-white rounded-xl overflow-hidden border border-gray-100">
                                 <div class="aspect-[3/4] relative bg-gray-100">
@@ -164,11 +157,11 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
                                         <h4 class="font-bold text-gray-900 text-sm mb-2">{{ shopTheLook.title }}</h4>
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-blue-600">${{ shopTheLook.price.toFixed(2) }}</span>
-                                            <a :href="shopTheLook.link" class="p-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors">
+                                            <Link :href="shopTheLook.link" class="p-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                                                 </svg>
-                                            </a>
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>

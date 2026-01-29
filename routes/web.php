@@ -79,6 +79,7 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
+        Route::post('banners/reorder', [BannerController::class, 'reorder'])->name('banners.reorder');
         Route::resource('banners', BannerController::class);
         Route::post('categories/bulk-update-status', [CategoryController::class, 'bulkUpdateStatus'])->name('categories.bulk-update-status');
         Route::resource('categories', CategoryController::class);

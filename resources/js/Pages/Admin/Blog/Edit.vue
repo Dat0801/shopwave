@@ -2,26 +2,71 @@
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import Breadcrumb from '@/Components/Admin/Breadcrumb.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
+import RichTextEditor from '@/Components/Admin/RichTextEditor.vue';
 
 const props = defineProps({
     post: Object,
 });
 
 const form = useForm({
-    title: props.post.title,
-    excerpt: props.post.excerpt,
-    content: props.post.content,
-    image: props.post.image,
-    category: props.post.category,
-    status: props.post.status,
+    title: props.post.title || '',
+    excerpt: props.post.excerpt || '',
+    content: props.post.content || '',
+    image: props.post.image || null,
+    category: props.post.category || '',
+    status: props.post.status || 'draft',
     published_at: props.post.published_at ? props.post.published_at.slice(0, 16) : '', // Format for datetime-local
+    meta_title: props.post.meta_title || '',
+    meta_description: props.post.meta_description || '',
+    tags: props.post.tags || [],
 });
 
+const imagePreview = ref(props.post.image);
+const newTag = ref('');
+const isSeoOpen = ref(false);
+
+const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        form.image = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const addTag = () => {
+    const tag = newTag.value.trim();
+    if (tag && !form.tags.includes(tag)) {
+        form.tags.push(tag);
+        newTag.value = '';
+    }
+};
+
+const removeTag = (index) => {
+    form.tags.splice(index, 1);
+};
+
 const submit = () => {
-    form.put(route('admin.blog.update', props.post.id));
+    // If image is a string (existing URL), don't send it to backend unless we want to keep it, 
+    // but Inertia handles file uploads differently. 
+    // If we are using FormData (which Inertia does automatically for files), we might need to handle this.
+    // However, the backend logic: if (request->hasFile('image')) checks for file.
+    // If form.image is a string, it won't be treated as a file.
+    
+    // NOTE: In Vue Inertia, if we put() with a file, we might need to use post() with _method: 'put'.
+    // But let's stick to simple first. If form.image is string, we can send it or null.
+    // Actually, usually we use a separate key for new image or just check type.
+    
+    form.post(route('admin.blog.update', props.post.id), {
+        _method: 'put',
+    });
 };
 
 const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fashion', 'Trends', 'Lifestyle'];
@@ -86,15 +131,51 @@ const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fas
                             <!-- Content -->
                             <div>
                                 <InputLabel for="content" value="Content" />
-                                <textarea
-                                    id="content"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"
-                                    v-model="form.content"
-                                    rows="15"
-                                    required
-                                ></textarea>
-                                <p class="mt-1 text-sm text-gray-500">HTML is supported.</p>
+                                <RichTextEditor 
+                                    v-model="form.content" 
+                                    placeholder="Write something amazing..."
+                                    class="mt-1"
+                                />
                                 <InputError class="mt-2" :message="form.errors.content" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEO Settings -->
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            type="button" 
+                            class="w-full flex items-center justify-between p-6 bg-white hover:bg-gray-50 transition-colors text-left"
+                            @click="isSeoOpen = !isSeoOpen"
+                        >
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <span class="font-bold text-gray-900">SEO Settings</span>
+                            </div>
+                            <span class="text-sm text-blue-600 font-medium" v-if="!isSeoOpen">Preview Result</span>
+                            <svg class="w-5 h-5 text-gray-400 transform transition-transform" :class="{ 'rotate-180': isSeoOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        
+                        <div v-show="isSeoOpen" class="p-6 border-t border-gray-100 space-y-4">
+                             <div>
+                                <InputLabel for="meta_title" value="Meta Title" />
+                                <TextInput
+                                    id="meta_title"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    v-model="form.meta_title"
+                                />
+                                <p class="mt-1 text-xs text-gray-500">Recommended length: 50-60 characters</p>
+                            </div>
+                            <div>
+                                <InputLabel for="meta_description" value="Meta Description" />
+                                <textarea
+                                    id="meta_description"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    rows="3"
+                                    v-model="form.meta_description"
+                                ></textarea>
+                                <p class="mt-1 text-xs text-gray-500">Recommended length: 150-160 characters</p>
                             </div>
                         </div>
                     </div>
@@ -148,6 +229,26 @@ const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fas
                                     <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                                 </select>
                                 <InputError class="mt-2" :message="form.errors.category" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="tags" value="Tags" />
+                                <div class="flex flex-wrap gap-2 mb-2 mt-2">
+                                    <span v-for="(tag, index) in form.tags" :key="index" class="inline-flex items-center px-2.5 py-0.5 rounded text-sm font-medium bg-blue-100 text-blue-800">
+                                        {{ tag }}
+                                        <button type="button" @click="removeTag(index)" class="ml-1.5 inline-flex items-center justify-center text-blue-400 hover:text-blue-600 focus:outline-none">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                        </button>
+                                    </span>
+                                </div>
+                                <TextInput
+                                    id="tags"
+                                    type="text"
+                                    class="block w-full"
+                                    placeholder="Add a tag..."
+                                    v-model="newTag"
+                                    @keydown.enter.prevent="addTag"
+                                />
                             </div>
                         </div>
                     </div>

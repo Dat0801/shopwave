@@ -4,6 +4,7 @@ import Breadcrumb from '@/Components/Admin/Breadcrumb.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { CogIcon, GlobeAltIcon, EnvelopeIcon, LockClosedIcon, KeyIcon } from '@heroicons/vue/24/outline';
+import systemOptions from '@/Data/systemOptions.json';
 
 const props = defineProps({
     settings: Object,
@@ -11,7 +12,11 @@ const props = defineProps({
 
 // Helper to get value safely
 const getSetting = (group, key, defaultVal = '') => {
-    return props.settings[group]?.find(s => s.key === key)?.value || defaultVal;
+    // Check DB setting first
+    const dbValue = props.settings[group]?.find(s => s.key === key)?.value;
+    if (dbValue !== undefined && dbValue !== null) return dbValue;
+    
+    return defaultVal;
 };
 
 const form = useForm({
@@ -22,9 +27,19 @@ const form = useForm({
     site_logo: null,
     site_favicon: null,
     
-    currency: getSetting('regional', 'currency', 'USD ($)'),
-    timezone: getSetting('regional', 'timezone', '(GMT-08:00) Pacific Time'),
-    locale: getSetting('regional', 'locale', 'English (US)'),
+    currency: getSetting('regional', 'currency', 'USD'),
+    timezone: getSetting('regional', 'timezone', 'America/Los_Angeles'),
+    locale: getSetting('regional', 'locale', 'en'),
+
+    // Email Settings
+    mail_mailer: getSetting('email', 'mail_mailer'),
+    mail_host: getSetting('email', 'mail_host'),
+    mail_port: getSetting('email', 'mail_port'),
+    mail_username: getSetting('email', 'mail_username'),
+    mail_password: getSetting('email', 'mail_password'),
+    mail_encryption: getSetting('email', 'mail_encryption'),
+    mail_from_address: getSetting('email', 'mail_from_address'),
+    mail_from_name: getSetting('email', 'mail_from_name'),
 });
 
 // Previews
@@ -53,15 +68,15 @@ const submit = () => {
 };
 
 const activeTab = ref('General');
-const tabs = ['General', 'Localization', 'Email Settings', 'Advanced'];
+// Remove redundant horizontal tabs
 const navItems = [
-    { name: 'General', icon: CogIcon, current: true },
-    { name: 'Localization', icon: GlobeAltIcon, current: false },
-    { name: 'Email Settings', icon: EnvelopeIcon, current: false },
+    { name: 'General', icon: CogIcon, id: 'General' },
+    { name: 'Localization', icon: GlobeAltIcon, id: 'Localization' },
+    { name: 'Email Settings', icon: EnvelopeIcon, id: 'Email Settings' },
 ];
 const securityItems = [
-    { name: 'Permissions', icon: LockClosedIcon, current: false },
-    { name: 'API Keys', icon: KeyIcon, current: false },
+    { name: 'Permissions', icon: LockClosedIcon, id: 'Permissions' },
+    { name: 'API Keys', icon: KeyIcon, id: 'API Keys' },
 ];
 </script>
 
@@ -79,19 +94,8 @@ const securityItems = [
                     ]" 
                     class="mb-2"
                 />
-                <h1 class="text-3xl font-bold text-gray-900">General Settings</h1>
+                <h1 class="text-3xl font-bold text-gray-900">{{ activeTab }} Settings</h1>
                 <p class="mt-2 text-gray-500">Manage your shop identity, global brand assets, and core platform behavior.</p>
-            </div>
-
-            <!-- Tabs -->
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                    <a v-for="tab in tabs" :key="tab" href="#" 
-                       :class="[activeTab === tab ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm']"
-                       @click.prevent="activeTab = tab">
-                        {{ tab }}
-                    </a>
-                </nav>
             </div>
 
             <div class="flex flex-col lg:flex-row gap-8">
@@ -101,20 +105,23 @@ const securityItems = [
                         <div>
                             <h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</h3>
                             <div class="mt-2 space-y-1">
-                                <a v-for="item in navItems" :key="item.name" href="#" 
-                                   :class="[item.current ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900', 'group flex items-center px-3 py-2 text-sm font-medium rounded-md']">
-                                    <component :is="item.icon" :class="[item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500', 'flex-shrink-0 -ml-1 mr-3 h-6 w-6']" aria-hidden="true" />
+                                <button v-for="item in navItems" :key="item.name" @click="activeTab = item.id"
+                                   type="button"
+                                   :class="[activeTab === item.id ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900', 'w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md']">
+                                    <component :is="item.icon" :class="[activeTab === item.id ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500', 'flex-shrink-0 -ml-1 mr-3 h-6 w-6']" aria-hidden="true" />
                                     <span class="truncate">{{ item.name }}</span>
-                                </a>
+                                </button>
                             </div>
                         </div>
                         <div>
                             <h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Security</h3>
                             <div class="mt-2 space-y-1">
-                                <a v-for="item in securityItems" :key="item.name" href="#" 
-                                   :class="[item.current ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900', 'group flex items-center px-3 py-2 text-sm font-medium rounded-md']">
+                                <button v-for="item in securityItems" :key="item.name" @click="activeTab = item.id"
+                                   type="button"
+                                   :class="[activeTab === item.id ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900', 'w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md']">
+                                    <component :is="item.icon" :class="[activeTab === item.id ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500', 'flex-shrink-0 -ml-1 mr-3 h-6 w-6']" aria-hidden="true" />
                                     <span class="truncate">{{ item.name }}</span>
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </nav>
@@ -124,130 +131,186 @@ const securityItems = [
                 <div class="flex-1">
                     <form @submit.prevent="submit" class="space-y-10">
                         
-                        <!-- Site Identity -->
-                        <section>
-                            <h2 class="text-lg font-medium text-gray-900">Site Identity</h2>
-                            <p class="mt-1 text-sm text-gray-500">How your store appears to customers and search engines.</p>
-                            
-                            <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                <div class="sm:col-span-3">
-                                    <label for="site_name" class="block text-sm font-medium text-gray-700">Site Name</label>
-                                    <div class="mt-1">
-                                        <input type="text" name="site_name" id="site_name" v-model="form.site_name"
-                                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                        <!-- Site Identity (General) -->
+                        <div v-if="activeTab === 'General'">
+                            <section>
+                                <h2 class="text-lg font-medium text-gray-900">Site Identity</h2>
+                                <p class="mt-1 text-sm text-gray-500">How your store appears to customers and search engines.</p>
+                                
+                                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                                    <div class="sm:col-span-3">
+                                        <label for="site_name" class="block text-sm font-medium text-gray-700">Site Name</label>
+                                        <div class="mt-1">
+                                            <input type="text" name="site_name" id="site_name" v-model="form.site_name"
+                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label for="contact_email" class="block text-sm font-medium text-gray-700">Contact Email</label>
+                                        <div class="mt-1">
+                                            <input type="email" name="contact_email" id="contact_email" v-model="form.contact_email"
+                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-6">
+                                        <label for="seo_description" class="block text-sm font-medium text-gray-700">SEO Description</label>
+                                        <div class="mt-1">
+                                            <textarea id="seo_description" name="seo_description" rows="3" v-model="form.seo_description"
+                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                                        </div>
+                                        <p class="mt-2 text-xs text-gray-400">Used for Google search snippets and social sharing.</p>
                                     </div>
                                 </div>
+                            </section>
 
-                                <div class="sm:col-span-3">
-                                    <label for="contact_email" class="block text-sm font-medium text-gray-700">Contact Email</label>
-                                    <div class="mt-1">
-                                        <input type="email" name="contact_email" id="contact_email" v-model="form.contact_email"
-                                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                            <!-- Brand Assets (General) -->
+                            <section class="pt-10 border-t border-gray-200 mt-10">
+                                <h2 class="text-lg font-medium text-gray-900">Brand Assets</h2>
+                                <p class="mt-1 text-sm text-gray-500">Upload your brand logo and favicon used throughout the platform.</p>
+
+                                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Main Logo</label>
+                                        <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10 bg-gray-50 hover:bg-gray-100 transition-colors relative">
+                                            <div class="text-center">
+                                                <div v-if="logoPreview" class="mb-4">
+                                                    <img :src="logoPreview" alt="Logo Preview" class="mx-auto h-12 object-contain" />
+                                                </div>
+                                                <div v-else class="mx-auto h-12 w-12 text-gray-300">
+                                                    <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div class="flex text-sm text-gray-600 justify-center">
+                                                    <label for="site_logo" class="relative cursor-pointer rounded-md bg-white font-medium text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:text-blue-500">
+                                                        <span>Upload a file</span>
+                                                        <input id="site_logo" name="site_logo" type="file" class="sr-only" accept="image/*" @change="handleFileChange('site_logo', $event)" />
+                                                    </label>
+                                                    <p class="pl-1">or drag and drop</p>
+                                                </div>
+                                                <p class="text-xs text-gray-500">PNG, SVG up to 2MB (Recommended: 400x100px)</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="sm:col-span-6">
-                                    <label for="seo_description" class="block text-sm font-medium text-gray-700">SEO Description</label>
-                                    <div class="mt-1">
-                                        <textarea id="seo_description" name="seo_description" rows="3" v-model="form.seo_description"
-                                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
-                                    </div>
-                                    <p class="mt-2 text-xs text-gray-400">Used for Google search snippets and social sharing.</p>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- Brand Assets -->
-                        <section class="pt-10 border-t border-gray-200">
-                            <h2 class="text-lg font-medium text-gray-900">Brand Assets</h2>
-                            <p class="mt-1 text-sm text-gray-500">Upload your brand logo and favicon used throughout the platform.</p>
-
-                            <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Main Logo</label>
-                                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10 bg-gray-50 hover:bg-gray-100 transition-colors relative">
-                                        <div class="text-center">
-                                            <div v-if="logoPreview" class="mb-4">
-                                                <img :src="logoPreview" alt="Logo Preview" class="mx-auto h-12 object-contain" />
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Favicon</label>
+                                        <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10 bg-gray-50 hover:bg-gray-100 transition-colors relative">
+                                            <div class="text-center">
+                                                <div v-if="faviconPreview" class="mb-4">
+                                                    <img :src="faviconPreview" alt="Favicon Preview" class="mx-auto h-8 w-8 object-contain" />
+                                                </div>
+                                                <div v-else class="mx-auto h-8 w-8 text-gray-300">
+                                                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div class="flex text-sm text-gray-600 justify-center">
+                                                    <label for="site_favicon" class="relative cursor-pointer rounded-md bg-white font-medium text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:text-blue-500">
+                                                        <span>Upload a file</span>
+                                                        <input id="site_favicon" name="site_favicon" type="file" class="sr-only" accept="image/*" @change="handleFileChange('site_favicon', $event)" />
+                                                    </label>
+                                                    <p class="pl-1">or drag and drop</p>
+                                                </div>
+                                                <p class="text-xs text-gray-500">PNG, ICO up to 1MB (Recommended: 32x32px)</p>
                                             </div>
-                                            <div v-else class="mx-auto h-12 w-12 text-gray-300">
-                                                <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            </div>
-                                            <div class="flex text-sm text-gray-600 justify-center">
-                                                <label for="site_logo" class="relative cursor-pointer rounded-md bg-white font-medium text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:text-blue-500">
-                                                    <span>Upload a file</span>
-                                                    <input id="site_logo" name="site_logo" type="file" class="sr-only" accept="image/*" @change="handleFileChange('site_logo', $event)" />
-                                                </label>
-                                                <p class="pl-1">or drag and drop</p>
-                                            </div>
-                                            <p class="text-xs text-gray-500">PNG, SVG up to 2MB (Recommended: 400x100px)</p>
                                         </div>
                                     </div>
                                 </div>
+                            </section>
+                        </div>
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Favicon</label>
-                                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10 bg-gray-50 hover:bg-gray-100 transition-colors relative">
-                                        <div class="text-center">
-                                            <div v-if="faviconPreview" class="mb-4">
-                                                <img :src="faviconPreview" alt="Favicon Preview" class="mx-auto h-8 w-8 object-contain" />
-                                            </div>
-                                            <div v-else class="mx-auto h-8 w-8 text-gray-300">
-                                                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            </div>
-                                            <div class="flex text-sm text-gray-600 justify-center">
-                                                <label for="site_favicon" class="relative cursor-pointer rounded-md bg-white font-medium text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:text-blue-500">
-                                                    <span>Upload a file</span>
-                                                    <input id="site_favicon" name="site_favicon" type="file" class="sr-only" accept="image/*" @change="handleFileChange('site_favicon', $event)" />
-                                                </label>
-                                                <p class="pl-1">or drag and drop</p>
-                                            </div>
-                                            <p class="text-xs text-gray-500">PNG, ICO up to 1MB (Recommended: 32x32px)</p>
-                                        </div>
+                        <!-- Regional Defaults (Localization) -->
+                        <div v-if="activeTab === 'Localization'">
+                            <section>
+                                <h2 class="text-lg font-medium text-gray-900">Regional Defaults</h2>
+                                <p class="mt-1 text-sm text-gray-500">Configure default settings for new users and storefront guests.</p>
+                                
+                                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
+                                    <div>
+                                        <label for="currency" class="block text-sm font-medium text-gray-700">Default Currency</label>
+                                        <select id="currency" name="currency" v-model="form.currency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <option v-for="currency in systemOptions.currencies" :key="currency.code" :value="currency.code">
+                                                {{ currency.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="timezone" class="block text-sm font-medium text-gray-700">Timezone</label>
+                                        <select id="timezone" name="timezone" v-model="form.timezone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <option v-for="timezone in systemOptions.timezones" :key="timezone.value" :value="timezone.value">
+                                                {{ timezone.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="locale" class="block text-sm font-medium text-gray-700">Language</label>
+                                        <select id="locale" name="locale" v-model="form.locale" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <option v-for="locale in systemOptions.locales" :key="locale.code" :value="locale.code">
+                                                {{ locale.label }}
+                                            </option>
+                                        </select>
                                     </div>
                                 </div>
+                            </section>
+                        </div>
+
+                        <!-- Email Settings -->
+                        <div v-if="activeTab === 'Email Settings'">
+                            <section>
+                                <h2 class="text-lg font-medium text-gray-900">Email Settings</h2>
+                                <p class="mt-1 text-sm text-gray-500">Configure your email service provider (SMTP).</p>
+                                
+                                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                                    <div class="sm:col-span-3">
+                                        <label for="mail_mailer" class="block text-sm font-medium text-gray-700">Mailer</label>
+                                        <input type="text" id="mail_mailer" v-model="form.mail_mailer" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="smtp" />
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="mail_host" class="block text-sm font-medium text-gray-700">Host</label>
+                                        <input type="text" id="mail_host" v-model="form.mail_host" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="smtp.mailtrap.io" />
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label for="mail_port" class="block text-sm font-medium text-gray-700">Port</label>
+                                        <input type="text" id="mail_port" v-model="form.mail_port" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="2525" />
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label for="mail_username" class="block text-sm font-medium text-gray-700">Username</label>
+                                        <input type="text" id="mail_username" v-model="form.mail_username" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label for="mail_password" class="block text-sm font-medium text-gray-700">Password</label>
+                                        <input type="password" id="mail_password" v-model="form.mail_password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label for="mail_encryption" class="block text-sm font-medium text-gray-700">Encryption</label>
+                                        <input type="text" id="mail_encryption" v-model="form.mail_encryption" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="tls" />
+                                    </div>
+                                    <div class="sm:col-span-4"></div>
+                                    <div class="sm:col-span-3">
+                                        <label for="mail_from_address" class="block text-sm font-medium text-gray-700">From Address</label>
+                                        <input type="email" id="mail_from_address" v-model="form.mail_from_address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="mail_from_name" class="block text-sm font-medium text-gray-700">From Name</label>
+                                        <input type="text" id="mail_from_name" v-model="form.mail_from_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Security Placeholders -->
+                        <div v-if="['Permissions', 'API Keys'].includes(activeTab)">
+                            <div class="text-center py-20 text-gray-500">
+                                <LockClosedIcon class="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                                <h3 class="text-lg font-medium text-gray-900">Coming Soon</h3>
+                                <p class="mt-1">This feature is currently under development.</p>
                             </div>
-                        </section>
-
-                        <!-- Regional Defaults -->
-                        <section class="pt-10 border-t border-gray-200">
-                            <h2 class="text-lg font-medium text-gray-900">Regional Defaults</h2>
-                            <p class="mt-1 text-sm text-gray-500">Configure default settings for new users and storefront guests.</p>
-                            
-                            <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
-                                <div>
-                                    <label for="currency" class="block text-sm font-medium text-gray-700">Default Currency</label>
-                                    <select id="currency" name="currency" v-model="form.currency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                                        <option>USD ($)</option>
-                                        <option>EUR (€)</option>
-                                        <option>GBP (£)</option>
-                                        <option>VND (₫)</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="timezone" class="block text-sm font-medium text-gray-700">Timezone</label>
-                                    <select id="timezone" name="timezone" v-model="form.timezone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                                        <option>(GMT-08:00) Pacific Time</option>
-                                        <option>(GMT+00:00) UTC</option>
-                                        <option>(GMT+07:00) Indochina Time</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="locale" class="block text-sm font-medium text-gray-700">Language</label>
-                                    <select id="locale" name="locale" v-model="form.locale" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                                        <option>English (US)</option>
-                                        <option>Vietnamese</option>
-                                        <option>French</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </section>
+                        </div>
 
                         <!-- Footer Actions -->
                         <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-6 lg:pl-72 flex items-center justify-between z-10">

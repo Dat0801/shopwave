@@ -76,6 +76,12 @@ class HandleInertiaRequests extends Middleware
             'cart' => [
                 'count' => $cartCount,
             ],
+            'settings' => [
+                'logo' => config('app.logo'),
+                'favicon' => config('app.favicon'),
+                'currency' => config('app.currency'),
+                'site_name' => config('app.name'),
+            ],
         ];
     }
 }

@@ -14,7 +14,9 @@ import {
 } from 'lucide-vue-next';
 
 const props = defineProps({
-    post: Object
+    post: Object,
+    related_posts: Array,
+    shop_the_look: Array
 });
 
 const comment = ref('');
@@ -103,9 +105,7 @@ const submitComment = () => {
                         </div>
 
                         <!-- Blog Content -->
-                        <div class="prose prose-lg prose-blue max-w-none text-gray-600" v-html="post.content">
-                            <!-- Content injected via v-html -->
-                        </div>
+                        <div class="prose prose-lg prose-blue max-w-none text-gray-600" v-html="post.content"></div>
 
                         <!-- Shop The Look Section -->
                         <div class="mt-16 mb-16">
@@ -146,7 +146,7 @@ const submitComment = () => {
                 <div class="border-t border-gray-100 pt-16 mt-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-8 text-center">Keep Reading</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <Link v-for="related in post.related_posts" :key="related.id" :href="route('blog.show', related.slug)" class="group cursor-pointer">
+                        <Link v-for="related in related_posts" :key="related.id" :href="route('blog.show', related.slug)" class="group cursor-pointer">
                             <div class="rounded-xl overflow-hidden h-48 mb-4">
                                 <img :src="related.image" :alt="related.title" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                             </div>

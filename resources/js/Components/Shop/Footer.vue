@@ -10,12 +10,13 @@ const page = usePage();
             <div class="grid grid-cols-1 gap-12 lg:grid-cols-5">
                 <div class="lg:col-span-2">
                     <div class="flex items-center gap-2 mb-6">
-                        <div class="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-600 text-white">
+                        <img v-if="page.props.settings?.logo" :src="page.props.settings.logo" alt="Logo" class="h-8 w-auto" />
+                        <div v-else class="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-600 text-white">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                             </svg>
                         </div>
-                        <span class="font-bold text-xl tracking-tight text-gray-900">ShopWave</span>
+                        <span class="font-bold text-xl tracking-tight text-gray-900">{{ page.props.settings?.site_name || 'ShopWave' }}</span>
                     </div>
                     <p class="text-base text-gray-500 mb-8 max-w-sm leading-relaxed">
                         Redefining lifestyle through sustainable fashion and modern design. Join the wave of conscious consumption.
@@ -79,7 +80,7 @@ const page = usePage();
             </div>
             <div class="mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
                 <p class="text-sm text-gray-400">
-                    &copy; {{ new Date().getFullYear() }} ShopWave Inc. All rights reserved.
+                    &copy; {{ new Date().getFullYear() }} {{ page.props.settings?.site_name || 'ShopWave' }}. All rights reserved.
                 </p>
                     <div class="flex gap-3">
                         <!-- Payment icons placeholder -->

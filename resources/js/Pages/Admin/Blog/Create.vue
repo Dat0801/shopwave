@@ -6,6 +6,7 @@ import { ref, computed } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
+import RichTextEditor from '@/Components/Admin/RichTextEditor.vue';
 
 const form = useForm({
     title: '',
@@ -24,10 +25,11 @@ const imagePreview = ref(null);
 const newTag = ref('');
 const isSeoOpen = ref(false);
 
-// Mock word count
+// Word count
 const wordCount = computed(() => {
     if (!form.content) return 0;
-    return form.content.trim().split(/\s+/).length;
+    const text = form.content.replace(/<[^>]*>/g, ''); // Strip HTML tags
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
 });
 
 const handleImageChange = (e) => {
@@ -83,13 +85,9 @@ const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fas
                         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
                             Create New Blog Post
                         </h1>
-                        <span class="text-xs text-gray-500 italic hidden sm:inline-block">Last saved 2 mins ago</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Preview
-                    </button>
                     <button 
                         @click="submit('published')" 
                         :disabled="form.processing"
@@ -123,37 +121,29 @@ const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fas
                         <InputError class="mt-2" :message="form.errors.title" />
                     </div>
 
-                    <!-- Rich Text Editor Mock -->
-                    <div class="border-t border-gray-100 pt-6">
-                        <!-- Toolbar -->
-                        <div class="flex items-center gap-1 mb-4 border-b border-gray-100 pb-2 overflow-x-auto">
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Bold"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6V4zm0 8h9a4 4 0 014 4 4 4 0 01-4 4H6v-8z"></path></svg></button>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Italic"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4M6 16l-4-4m0 0l4-4m-4 4h14"></path></svg></button>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Underline"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg></button>
-                            <div class="w-px h-4 bg-gray-200 mx-2"></div>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Link"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg></button>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Image"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></button>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Video"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
-                            <div class="w-px h-4 bg-gray-200 mx-2"></div>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="List"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Ordered List"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h12M7 12h12M7 17h12M3 7h.01M3 12h.01M3 17h.01"></path></svg></button>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Quote"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg></button>
-                            <div class="flex-1"></div>
-                            <button type="button" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Code"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4M6 16l-4-4m0 0l4-4m-4 4h14"></path></svg></button>
-                        </div>
-
-                        <!-- Textarea Content -->
+                    <!-- Excerpt -->
+                    <div>
+                        <InputLabel for="excerpt" value="Excerpt" class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2" />
                         <textarea
-                            id="content"
-                            class="block w-full border-0 p-0 text-gray-600 placeholder-gray-300 focus:ring-0 min-h-[400px] resize-none text-lg leading-relaxed"
-                            placeholder="Start writing your story..."
-                            v-model="form.content"
-                            required
+                            id="excerpt"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            placeholder="Brief summary of the post..."
+                            v-model="form.excerpt"
+                            rows="2"
                         ></textarea>
+                        <InputError class="mt-2" :message="form.errors.excerpt" />
+                    </div>
+
+                    <!-- Rich Text Editor -->
+                    <div class="border-t border-gray-100 pt-6">
+                        <RichTextEditor 
+                            v-model="form.content" 
+                            placeholder="Start writing your story..."
+                        />
                         <InputError class="mt-2" :message="form.errors.content" />
 
                         <!-- Editor Footer -->
-                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-xs font-medium text-gray-400 uppercase tracking-wide">
+                        <div class="flex items-center justify-between mt-4 text-xs font-medium text-gray-400 uppercase tracking-wide">
                             <span>Draft Saved</span>
                             <span>{{ wordCount }} Words</span>
                         </div>
