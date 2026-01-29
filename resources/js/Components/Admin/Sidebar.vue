@@ -1,6 +1,8 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
+
+const page = usePage();
 
 defineProps({
     showingNavigationDropdown: {
@@ -76,13 +78,14 @@ onMounted(() => {
     <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transition-transform duration-300 ease-in-out md:translate-x-0" :class="{ '-translate-x-full': !showingNavigationDropdown, 'translate-x-0': showingNavigationDropdown }">
         <div class="flex h-16 items-center justify-center border-b border-gray-100 px-6">
             <Link :href="route('admin.dashboard')" class="flex items-center gap-2">
-                <div class="rounded-lg bg-blue-600 p-1">
+                <img v-if="page.props.settings?.logo" :src="page.props.settings.logo" alt="Logo" class="h-8 w-auto" />
+                <div v-else class="rounded-lg bg-blue-600 p-1">
                     <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-lg font-bold text-gray-900 leading-none">ShopWave</span>
+                    <span class="text-lg font-bold text-gray-900 leading-none">{{ page.props.settings?.site_name || 'ShopWave' }}</span>
                     <span class="text-[10px] text-gray-500 font-medium tracking-wider uppercase">Admin Console</span>
                 </div>
             </Link>

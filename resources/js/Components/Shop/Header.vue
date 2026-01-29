@@ -27,12 +27,13 @@ const handleSearch = () => {
         <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <!-- Logo -->
             <Link :href="route('home')" class="flex items-center gap-2">
-                <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+                <img v-if="page.props.settings?.logo" :src="page.props.settings.logo" alt="Logo" class="h-10 w-auto" />
+                <div v-else class="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </div>
-                <span class="font-bold text-2xl tracking-tight text-gray-900">ShopWave</span>
+                <span class="font-bold text-2xl tracking-tight text-gray-900">{{ page.props.settings?.site_name || 'ShopWave' }}</span>
             </Link>
 
             <!-- Navigation & Search -->

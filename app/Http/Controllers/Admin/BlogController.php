@@ -54,6 +54,9 @@ class BlogController extends Controller
             'category' => 'required|string',
             'status' => 'required|in:draft,published,scheduled',
             'published_at' => 'nullable|date',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string',
+            'tags' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image')) {
@@ -64,19 +67,23 @@ class BlogController extends Controller
         $validated['slug'] = Str::slug($validated['title']);
         $validated['author_id'] = Auth::id();
 
+        if ($validated['status'] === 'published' && empty($validated['published_at'])) {
+            $validated['published_at'] = now();
+        }
+
         BlogPost::create($validated);
 
         return redirect()->route('admin.blog.index')->with('success', 'Blog post created successfully.');
     }
 
-    public function edit(BlogPost $post)
+    public function edit(BlogPost $blog)
     {
         return Inertia::render('Admin/Blog/Edit', [
-            'post' => $post,
+            'post' => $blog,
         ]);
     }
 
-    public function update(Request $request, BlogPost $post)
+    public function update(Request $request, BlogPost $blog)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -98,7 +105,7 @@ class BlogController extends Controller
             unset($validated['image']);
         }
 
-        if ($request->has('title') && $request->title !== $post->title) {
+        if ($request->has('title') && $request->title !== $blog->title) {
             $validated['slug'] = Str::slug($validated['title']);
         }
 
@@ -106,14 +113,14 @@ class BlogController extends Controller
             $validated['published_at'] = now();
         }
 
-        $post->update($validated);
+        $blog->update($validated);
 
         return redirect()->route('admin.blog.index')->with('success', 'Blog post updated successfully.');
     }
 
-    public function destroy(BlogPost $post)
+    public function destroy(BlogPost $blog)
     {
-        $post->delete();
+        $blog->delete();
 
         return redirect()->route('admin.blog.index')->with('success', 'Blog post deleted successfully.');
     }

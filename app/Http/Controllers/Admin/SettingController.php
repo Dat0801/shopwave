@@ -55,6 +55,8 @@ class SettingController extends Controller
                         $group = 'regional';
                     } elseif (in_array($key, ['site_name', 'contact_email', 'seo_description'])) {
                         $group = 'general';
+                    } elseif (str_starts_with($key, 'mail_')) {
+                        $group = 'email';
                     }
                 }
 

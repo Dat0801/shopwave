@@ -10,13 +10,42 @@ use Illuminate\Support\Facades\Storage;
 
 class BannerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $banners = Banner::orderBy('order')->orderBy('created_at', 'desc')->paginate(10);
+        $query = Banner::query();
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('placement') && $request->placement !== 'All Banners') {
+            $query->where('placement', $request->placement);
+        }
+
+        $banners = $query->orderBy('order')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Admin/Banners/Index', [
-            'banners' => $banners
+            'banners' => $banners,
+            'filters' => $request->only(['search', 'placement']),
         ]);
+    }
+
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'banners' => 'required|array',
+            'banners.*.id' => 'required|exists:banners,id',
+            'banners.*.order' => 'required|integer',
+        ]);
+
+        foreach ($request->banners as $item) {
+            Banner::where('id', $item['id'])->update(['order' => $item['order']]);
+        }
+
+        return back()->with('success', 'Banners reordered successfully.');
     }
 
     public function create()

@@ -38,10 +38,26 @@ class BlogController extends Controller
                 return $post;
             });
 
+        $shopTheLook = Product::inRandomOrder()
+            ->first();
+
+        if ($shopTheLook) {
+             $shopTheLookData = [
+                'title' => $shopTheLook->name,
+                'collection' => $shopTheLook->category->name ?? 'Collection',
+                'price' => (float) $shopTheLook->price,
+                'image' => $shopTheLook->image_path,
+                'link' => route('shop.show', $shopTheLook->slug),
+            ];
+        } else {
+            $shopTheLookData = null;
+        }
+
         return Inertia::render('Blog/Index', [
             'featuredStory' => $featuredStory ? $this->transformPost($featuredStory) : null,
             'latestStories' => $latestStories->map(fn($post) => $this->transformPost($post)),
             'trendingPosts' => $trendingPosts,
+            'shopTheLook' => $shopTheLookData,
         ]);
     }
 
@@ -80,6 +96,9 @@ class BlogController extends Controller
 
     private function transformPost($post)
     {
+        $wordCount = str_word_count(strip_tags($post->content));
+        $readTime = ceil($wordCount / 200);
+
         return [
             'id' => $post->id,
             'slug' => $post->slug,
@@ -94,7 +113,7 @@ class BlogController extends Controller
                 'avatar' => $post->author->avatar,
             ],
             'published_at' => $post->published_at ? $post->published_at->format('M d, Y') : '',
-            'read_time' => '5 min read', // Placeholder or calculate based on content length
+            'read_time' => $readTime . ' min read',
             'description' => $post->excerpt, // Frontend uses description sometimes
             'link' => route('blog.show', $post->slug),
         ];
