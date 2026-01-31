@@ -137,11 +137,17 @@ class ProductController extends Controller
             'sizes' => $sizes->unique()->filter()->values(),
         ];
 
+        // Check if product is in user's wishlist
+        $isInWishlist = auth()->check()
+            ? auth()->user()->wishlist()->where('product_id', $product->id)->exists()
+            : false;
+
         return Inertia::render('Shop/Show', [
             'product' => $product,
             'relatedProducts' => $relatedProducts,
             'reviewStats' => $reviewStats,
             'availableOptions' => $availableOptions,
+            'isInWishlist' => $isInWishlist,
         ]);
     }
 }

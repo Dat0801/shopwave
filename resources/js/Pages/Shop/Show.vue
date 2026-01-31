@@ -1,7 +1,7 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { getImageUrl } from '@/Utils/image';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -15,17 +15,21 @@ const props = defineProps({
     relatedProducts: Array,
     reviewStats: Object,
     availableOptions: Object,
+    isInWishlist: Boolean,
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const showReviewForm = ref(false);
+const isInWishlist = ref(props.isInWishlist);
 
 const form = useForm({
     quantity: 1,
     color: null,
     size: null,
 });
+
+const wishlistForm = useForm({});
 
 const price = computed(() => props.product.sale_price || props.product.price);
 const discountPercentage = computed(() => {
@@ -127,6 +131,29 @@ const addToCart = () => {
     })).post(route('cart.store', props.product.id), {
         preserveScroll: true,
     });
+};
+
+const toggleWishlist = () => {
+    if (!user.value) {
+        window.location.href = route('login');
+        return;
+    }
+
+    if (isInWishlist.value) {
+        wishlistForm.delete(route('wishlist.destroy', props.product.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isInWishlist.value = false;
+            },
+        });
+    } else {
+        wishlistForm.post(route('wishlist.store', props.product.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isInWishlist.value = true;
+            },
+        });
+    }
 };
 
 const submitReview = () => {
@@ -294,12 +321,22 @@ const formatReviewDate = (date) => {
                         </button>
                         <button
                             type="button"
-                            class="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-8 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                            @click="toggleWishlist"
+                            :class="[
+                                isInWishlist 
+                                    ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100' 
+                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+                                'flex w-full items-center justify-center rounded-lg border px-8 py-4 text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors'
+                            ]"
                         >
-                            <svg class="mr-2 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg 
+                                :class="['mr-2 h-5 w-5', isInWishlist ? 'text-red-600' : 'text-gray-400']" 
+                                :fill="isInWishlist ? 'currentColor' : 'none'"
+                                viewBox="0 0 20 20"
+                            >
                                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
                             </svg>
-                            Save to Wishlist
+                            {{ isInWishlist ? 'Remove from Wishlist' : 'Save to Wishlist' }}
                         </button>
                     </div>
 
