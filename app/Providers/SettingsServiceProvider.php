@@ -34,6 +34,15 @@ class SettingsServiceProvider extends ServiceProvider
                 if ($setting->key === 'site_name') {
                     Config::set('app.name', $setting->value);
                 }
+                if ($setting->key === 'contact_email') {
+                    Config::set('app.contact_email', $setting->value);
+                }
+                if ($setting->key === 'contact_phone') {
+                    Config::set('app.contact_phone', $setting->value);
+                }
+                if ($setting->key === 'address') {
+                    Config::set('app.contact_address', $setting->value);
+                }
                 if ($setting->key === 'timezone') {
                     Config::set('app.timezone', $setting->value);
                     date_default_timezone_set($setting->value);

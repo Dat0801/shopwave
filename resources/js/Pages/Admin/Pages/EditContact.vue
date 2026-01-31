@@ -7,11 +7,15 @@ import InputLabel from '@/Components/InputLabel.vue';
 
 const props = defineProps({
     page: Object,
+    contactSettings: Object,
 });
 
 const form = useForm({
     title: props.page.title,
     content: props.page.content,
+    contact_email: props.contactSettings?.contact_email || '',
+    contact_phone: props.contactSettings?.contact_phone || '',
+    address: props.contactSettings?.address || '',
     meta: {
         header_title: props.page.meta?.header_title || '',
         header_description: props.page.meta?.header_description || '',
@@ -113,6 +117,28 @@ const submit = () => {
                     </div>
                      <div v-if="!form.meta.subjects || form.meta.subjects.length === 0" class="text-center py-8 text-gray-500 text-sm">
                         No subjects added yet.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Details -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-900">Contact Details</h3>
+                    <p class="text-sm text-gray-500">Displayed on the left side of the Contact page.</p>
+                </div>
+                <div class="p-6 grid grid-cols-1 gap-6 sm:grid-cols-6">
+                    <div class="sm:col-span-3">
+                        <InputLabel value="Contact Email" />
+                        <TextInput v-model="form.contact_email" type="email" class="w-full mt-1" />
+                    </div>
+                    <div class="sm:col-span-3">
+                        <InputLabel value="Contact Phone" />
+                        <TextInput v-model="form.contact_phone" class="w-full mt-1" />
+                    </div>
+                    <div class="sm:col-span-6">
+                        <InputLabel value="Contact Address" />
+                        <TextInput v-model="form.address" class="w-full mt-1" />
                     </div>
                 </div>
             </div>

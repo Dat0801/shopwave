@@ -1,12 +1,14 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { Mail, Phone, MapPin, Facebook, Twitter, Globe, Send } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps({
     page: Object
 });
+
+const settings = computed(() => usePage().props.settings || {});
 
 const form = useForm({
     name: '',
@@ -53,7 +55,9 @@ const submit = () => {
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-lg">Email Us</h3>
-                                    <p class="text-blue-100">support@shopwave.com</p>
+                                    <p class="text-blue-100">
+                                        {{ settings.contact_email || 'support@shopwave.com' }}
+                                    </p>
                                 </div>
                             </div>
 
@@ -63,7 +67,9 @@ const submit = () => {
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-lg">Call Us</h3>
-                                    <p class="text-blue-100">+1 (555) 123-4567</p>
+                                    <p class="text-blue-100">
+                                        {{ settings.contact_phone || '+1 (555) 123-4567' }}
+                                    </p>
                                     <p class="text-sm text-blue-200 mt-1">Mon-Fri: 9am - 6pm EST</p>
                                 </div>
                             </div>
@@ -74,7 +80,9 @@ const submit = () => {
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-lg">Visit Us</h3>
-                                    <p class="text-blue-100">123 Fashion Ave, Soho, NY 10012</p>
+                                    <p class="text-blue-100">
+                                        {{ settings.contact_address || '123 Fashion Ave, Soho, NY 10012' }}
+                                    </p>
                                 </div>
                             </div>
                         </div>

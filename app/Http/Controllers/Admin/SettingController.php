@@ -53,7 +53,7 @@ class SettingController extends Controller
                         $group = 'brand';
                     } elseif (in_array($key, ['currency', 'timezone', 'locale'])) {
                         $group = 'regional';
-                    } elseif (in_array($key, ['site_name', 'contact_email', 'seo_description'])) {
+                    } elseif (in_array($key, ['site_name', 'contact_email', 'contact_phone', 'address', 'seo_description'])) {
                         $group = 'general';
                     } elseif (str_starts_with($key, 'mail_')) {
                         $group = 'email';
