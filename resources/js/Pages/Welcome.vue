@@ -81,7 +81,7 @@ const getCategoryImage = (path) => {
                     </p>
                     <div v-if="banner.link" class="flex flex-wrap gap-4">
                         <a :href="banner.link" class="px-8 py-3 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30">
-                            View More
+                            {{ banner.button_text || 'View More' }}
                         </a>
                     </div>
                 </div>

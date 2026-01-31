@@ -48,6 +48,7 @@ const navigation = [
         children: [
              { name: 'Banners', href: route('admin.banners.index'), active: () => route().current('admin.banners.*') },
              { name: 'Blog', href: route('admin.blog.index'), active: () => route().current('admin.blog.*') },
+             { name: 'Blog Categories', href: route('admin.blog-categories.index'), active: () => route().current('admin.blog-categories.*') },
              { name: 'Pages', href: route('admin.pages.index'), active: () => route().current('admin.pages.*') },
              { name: 'Navigation', href: route('admin.navigations.index'), active: () => route().current('admin.navigations.*') },
         ]

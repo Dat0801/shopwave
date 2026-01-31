@@ -7,9 +7,12 @@ const page = usePage();
 const isLoggedIn = computed(() => !!page.props.auth.user);
 const isAdmin = computed(() => page.props.auth.user?.role === 'admin');
 const cartCount = computed(() => (page.props.cart ? page.props.cart.count : 0));
+const notifications = computed(() => page.props.auth.notifications || []);
+const unreadCount = computed(() => page.props.auth.unread_notifications_count || 0);
 
 const search = ref(page.props.filters?.search || '');
 const isMobileMenuOpen = ref(false);
+const isNotificationOpen = ref(false);
 
 const handleSearch = () => {
     router.get(route('shop.index'), {
@@ -97,19 +100,77 @@ const handleSearch = () => {
             <!-- Right Icons -->
             <div class="flex items-center gap-6">
                     <!-- Wishlist -->
-                <Link :href="route('wishlist.index')" class="text-gray-900 hover:text-blue-600 transition-colors">
+                <Link :href="route('wishlist.index')" class="flex items-center justify-center text-gray-900 hover:text-blue-600 transition-colors">
                     <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                     </svg>
                 </Link>
 
+                <!-- Notifications -->
+                <div v-if="isLoggedIn" class="relative flex items-center justify-center">
+                    <button @click="isNotificationOpen = !isNotificationOpen" class="relative flex items-center justify-center text-gray-900 hover:text-blue-600 transition-colors focus:outline-none">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                        <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                            {{ unreadCount }}
+                        </span>
+                    </button>
+
+                    <!-- Notification Dropdown -->
+                    <div v-if="isNotificationOpen" class="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                        <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+                            <Link 
+                                v-if="unreadCount > 0"
+                                :href="route('notifications.read-all')" 
+                                method="post" 
+                                as="button"
+                                class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                                Mark all as read
+                            </Link>
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            <div v-if="notifications.length === 0" class="px-4 py-6 text-center text-sm text-gray-500">
+                                No new notifications
+                            </div>
+                            <template v-else>
+                                <div 
+                                    v-for="notification in notifications" 
+                                    :key="notification.id"
+                                    class="border-b border-gray-50 last:border-0"
+                                >
+                                    <Link 
+                                        :href="route('notifications.read', notification.id)"
+                                        method="post"
+                                        as="button"
+                                        class="block w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                                        :class="{ 'bg-blue-50/50': !notification.read_at }"
+                                    >
+                                        <p class="text-sm text-gray-900 font-medium mb-1 line-clamp-2">
+                                            {{ notification.data.message }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            {{ new Date(notification.created_at).toLocaleDateString() }}
+                                        </p>
+                                    </Link>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Overlay to close dropdown -->
+                    <div v-if="isNotificationOpen" @click="isNotificationOpen = false" class="fixed inset-0 z-40 bg-transparent cursor-default"></div>
+                </div>
+
                 <!-- User -->
-                <Link v-if="isLoggedIn" :href="route('profile.edit')" class="text-gray-900 hover:text-blue-600 transition-colors">
+                <Link v-if="isLoggedIn" :href="route('profile.edit')" class="flex items-center justify-center text-gray-900 hover:text-blue-600 transition-colors">
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                     </svg>
                 </Link>
-                <Link v-else :href="route('login')" class="text-gray-900 hover:text-blue-600 transition-colors">
+                <Link v-else :href="route('login')" class="flex items-center justify-center text-gray-900 hover:text-blue-600 transition-colors">
                     <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                     </svg>

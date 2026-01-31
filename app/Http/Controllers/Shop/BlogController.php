@@ -3,32 +3,63 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class BlogController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request)
     {
-        // For the hero section (featured story), we could pick the latest featured one or just the latest one.
-        // For now, let's say the latest one is featured.
-        $featuredStory = BlogPost::with('author')
-            ->where('status', 'published')
-            ->latest('published_at')
-            ->first();
+        // Get categories for filter
+        $categories = BlogCategory::where('is_active', true)->pluck('name')->toArray();
+        array_unshift($categories, 'All Posts');
 
-        // Get latest stories excluding the featured one
-        $latestStories = BlogPost::with('author')
-            ->where('status', 'published')
-            ->where('id', '!=', $featuredStory?->id)
-            ->latest('published_at')
-            ->take(6)
-            ->get();
+        // For the hero section (featured story), we show it only on initial view (no filters/search)
+        $featuredStory = null;
+        if (!$request->filled('search') && (!$request->filled('category') || $request->category === 'All Posts') && !$request->filled('cursor')) {
+            $featuredStory = BlogPost::with('author')
+                ->where('status', 'published')
+                ->latest('published_at')
+                ->first();
+        }
 
-        // Trending posts - for now just random or most viewed (if we tracked views).
-        // Let's just take some random published posts.
+        // Build query for stories
+        $query = BlogPost::with(['author', 'blogCategory'])
+            ->where('status', 'published');
+
+        // Exclude featured story if it exists
+        if ($featuredStory) {
+            $query->where('id', '!=', $featuredStory->id);
+        }
+
+        // Apply Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('excerpt', 'like', '%' . $search . '%')
+                  ->orWhere('content', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Apply Category Filter
+        if ($request->filled('category') && $request->category !== 'All Posts') {
+            $query->whereHas('blogCategory', function($q) use ($request) {
+                $q->where('name', $request->category);
+            });
+        }
+
+        // Get latest stories with cursor pagination
+        $latestStories = $query->latest('published_at')
+            ->cursorPaginate(6)
+            ->through(fn($post) => $this->transformPost($post));
+
+        // Trending posts
         $trendingPosts = BlogPost::where('status', 'published')
             ->inRandomOrder()
             ->take(3)
@@ -53,37 +84,62 @@ class BlogController extends Controller
             $shopTheLookData = null;
         }
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'latestStories' => $latestStories,
+                'featuredStory' => $featuredStory ? $this->transformPost($featuredStory) : null,
+            ]);
+        }
+
         return Inertia::render('Blog/Index', [
             'featuredStory' => $featuredStory ? $this->transformPost($featuredStory) : null,
-            'latestStories' => $latestStories->map(fn($post) => $this->transformPost($post)),
+            'latestStories' => $latestStories,
             'trendingPosts' => $trendingPosts,
             'shopTheLook' => $shopTheLookData,
+            'filters' => $categories,
+            'currentFilter' => $request->category ?? 'All Posts',
+            'searchQuery' => $request->search ?? '',
         ]);
     }
 
     public function show($slug): Response
     {
-        $post = BlogPost::with('author')
+        $post = BlogPost::with(['author', 'products', 'comments' => function ($query) {
+            $query->withTrashed()
+                  ->where('status', 'approved')
+                  ->whereNull('parent_id')
+                  ->with(['user', 'replies' => function($q) {
+                      $q->withTrashed()->where('status', 'approved')->with('user');
+                  }])
+                  ->latest();
+        }])
             ->where('slug', $slug)
             ->where('status', 'published')
             ->firstOrFail();
 
-        $shopTheLook = Product::inRandomOrder()
-            ->take(3)
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'category' => $product->category->name ?? 'Collection',
-                    'price' => (float) $product->price,
-                    'image' => $product->image_path,
-                    'slug' => $product->slug,
-                ];
-            });
+        $shopTheLook = $post->products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category->name ?? 'Collection',
+                'price' => (float) $product->price,
+                'image' => $product->image_path,
+                'slug' => $product->slug,
+            ];
+        });
+
+        $transformedPost = $this->transformPost($post);
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if ($user) {
+            $transformedPost['author']['is_following'] = $user->isFollowing($post->author);
+        } else {
+            $transformedPost['author']['is_following'] = false;
+        }
 
         return Inertia::render('Blog/Show', [
-            'post' => $this->transformPost($post),
+            'post' => $transformedPost,
+            'comments' => $post->comments,
             'related_posts' => BlogPost::where('category', $post->category)
                 ->where('id', '!=', $post->id)
                 ->where('status', 'published')
@@ -106,8 +162,9 @@ class BlogController extends Controller
             'excerpt' => $post->excerpt,
             'content' => $post->content,
             'image' => $post->image,
-            'category' => $post->category,
+            'category' => $post->blogCategory->name ?? $post->category ?? 'Uncategorized',
             'author' => [
+                'id' => $post->author->id,
                 'name' => $post->author->name,
                 'role' => $post->author->role ?? 'Writer',
                 'avatar' => $post->author->avatar,

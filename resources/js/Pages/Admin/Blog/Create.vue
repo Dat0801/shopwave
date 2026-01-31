@@ -8,12 +8,16 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import RichTextEditor from '@/Components/Admin/RichTextEditor.vue';
 
+const props = defineProps({
+    categories: Array,
+});
+
 const form = useForm({
     title: '',
     excerpt: '',
     content: '',
     image: null,
-    category: '',
+    blog_category_id: '',
     status: 'draft',
     published_at: '',
     meta_title: '',
@@ -62,8 +66,6 @@ const submit = (status = null) => {
     }
     form.post(route('admin.blog.store'));
 };
-
-const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fashion', 'Trends', 'Lifestyle'];
 </script>
 
 <template>
@@ -275,16 +277,21 @@ const categories = ['Style Guide', 'Product News', 'UX Design', 'Sustainable Fas
                     
                     <div class="space-y-4">
                         <div>
-                            <InputLabel for="category" value="CATEGORY" class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2" />
+                            <div class="flex items-center justify-between mb-2">
+                                <InputLabel for="blog_category_id" value="CATEGORY" class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0" />
+                                <Link :href="route('admin.blog-categories.create')" class="text-xs font-medium text-blue-600 hover:text-blue-500">
+                                    + Add New
+                                </Link>
+                            </div>
                             <select
-                                id="category"
+                                id="blog_category_id"
                                 class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                v-model="form.category"
+                                v-model="form.blog_category_id"
                             >
                                 <option value="" disabled>Select Category</option>
-                                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                             </select>
-                            <InputError class="mt-2" :message="form.errors.category" />
+                            <InputError class="mt-2" :message="form.errors.blog_category_id" />
                         </div>
 
                         <div>
