@@ -1,15 +1,12 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { Mail, Phone, MapPin, Facebook, Twitter, Globe, Send } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps({
     page: Object
 });
-
-const page = usePage();
-const flash = computed(() => page.props.flash);
 
 const form = useForm({
     name: '',
@@ -105,10 +102,6 @@ const submit = () => {
                 <div class="p-10 lg:p-16">
                     <h2 class="text-2xl font-bold text-gray-900 mb-2">Send us a message</h2>
                     <p class="text-gray-500 mb-8">Fill out the form below and our team will get back to you within 24 hours.</p>
-
-                    <div v-if="flash.success" class="mb-6 p-4 rounded-lg bg-green-50 text-green-700 border border-green-200">
-                        {{ flash.success }}
-                    </div>
 
                     <form @submit.prevent="submit" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

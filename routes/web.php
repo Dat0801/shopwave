@@ -68,6 +68,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/wishlist/{product}', [WishlistController::class, 'store'])->name('wishlist.store');
     Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy'])->name('wishlist.destroy');
     Route::post('/wishlist/move-all-to-cart', [WishlistController::class, 'moveAllToCart'])->name('wishlist.move-all');
+
+    Route::post('/comments/{type}/{id}', [\App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
+    Route::delete('/comments/{comment}', [\App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
+
+    // Follow Routes
+    Route::post('/users/{user}/follow', [\App\Http\Controllers\Shop\FollowController::class, 'store'])->name('users.follow');
+    Route::delete('/users/{user}/follow', [\App\Http\Controllers\Shop\FollowController::class, 'destroy'])->name('users.unfollow');
+
+    // Notification Routes
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 });
 
 Route::get('/dashboard', function () {
@@ -95,6 +106,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
         Route::resource('blog', \App\Http\Controllers\Admin\BlogController::class);
+        Route::resource('blog-categories', \App\Http\Controllers\Admin\BlogCategoryController::class);
         Route::get('pages', [\App\Http\Controllers\Admin\PageController::class, 'index'])->name('pages.index');
         Route::get('pages/{page}/edit', [\App\Http\Controllers\Admin\PageController::class, 'edit'])->name('pages.edit');
         Route::put('pages/{page}', [\App\Http\Controllers\Admin\PageController::class, 'update'])->name('pages.update');

@@ -6,7 +6,7 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { useFlash } from '@/Composables/useFlash';
+import FlashMessage from '@/Components/FlashMessage.vue';
 
 const showingNavigationDropdown = ref(false);
 
@@ -24,12 +24,11 @@ const isAdminRoute = computed(
         (page.props.ziggy?.location?.includes('/admin') ||
             route().current('admin.*')),
 );
-
-const { success, error } = useFlash();
 </script>
 
 <template>
     <div>
+        <FlashMessage />
         <div class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
             <nav class="border-b border-gray-100 bg-white/80 backdrop-blur">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -180,30 +179,6 @@ const { success, error } = useFlash();
                     </div>
                 </div>
             </nav>
-
-            <div
-                v-if="success || error"
-                class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8"
-            >
-                <div
-                    v-if="success"
-                    class="mb-3 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm"
-                >
-                    <span class="mt-0.5 h-2 w-2 rounded-full bg-emerald-500" />
-                    <p class="flex-1">
-                        {{ success }}
-                    </p>
-                </div>
-                <div
-                    v-if="error"
-                    class="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-sm"
-                >
-                    <span class="mt-0.5 h-2 w-2 rounded-full bg-rose-500" />
-                    <p class="flex-1">
-                        {{ error }}
-                    </p>
-                </div>
-            </div>
 
             <div
                 v-if="isAdminRoute"

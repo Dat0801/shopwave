@@ -1,17 +1,87 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, watch, onMounted } from 'vue';
+import { debounce } from 'lodash';
+import axios from 'axios';
 
 const props = defineProps({
     featuredStory: Object,
-    latestStories: Array,
+    latestStories: Object, // Changed from Array to Object (Paginator)
     trendingPosts: Array,
     shopTheLook: Object,
+    filters: {
+        type: Array,
+        default: () => ['All Posts']
+    },
+    currentFilter: {
+        type: String,
+        default: 'All Posts'
+    },
+    searchQuery: {
+        type: String,
+        default: ''
+    }
 });
 
-const activeFilter = ref('All Posts');
-const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
+const activeFilter = ref(props.currentFilter);
+const search = ref(props.searchQuery);
+const posts = ref(props.latestStories.data || []);
+const nextCursor = ref(props.latestStories.next_page_url);
+const isLoadingMore = ref(false);
+
+// Update local state when props change (e.g. after full page reload/filter change)
+watch(() => props.latestStories, (newVal) => {
+    posts.value = newVal.data || [];
+    nextCursor.value = newVal.next_page_url;
+});
+
+// Watch filter changes
+watch(activeFilter, (newFilter) => {
+    router.get(route('blog.index'), {
+        category: newFilter,
+        search: search.value,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['latestStories', 'featuredStory', 'currentFilter', 'filters'],
+    });
+});
+
+// Watch search changes
+watch(search, debounce((newSearch) => {
+    router.get(route('blog.index'), {
+        category: activeFilter.value,
+        search: newSearch,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['latestStories', 'featuredStory', 'searchQuery'],
+    });
+}, 500));
+
+const loadMore = async () => {
+    if (!nextCursor.value || isLoadingMore.value) return;
+
+    isLoadingMore.value = true;
+
+    try {
+        const response = await axios.get(nextCursor.value, {
+            params: {
+                category: activeFilter.value,
+                search: search.value
+            }
+        });
+
+        const newPosts = response.data.latestStories.data;
+        posts.value = [...posts.value, ...newPosts];
+        nextCursor.value = response.data.latestStories.next_page_url;
+    } catch (error) {
+        console.error('Error loading more stories:', error);
+    } finally {
+        isLoadingMore.value = false;
+    }
+};
 
 </script>
 
@@ -21,6 +91,7 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
 
         <div class="bg-gray-50 min-h-screen pb-20">
             <!-- Hero Section / Featured Story -->
+            <!-- Only show featured story if no search/filter active or if specifically handled -->
             <div v-if="featuredStory" class="bg-white border-b border-gray-100">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
                     <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 grid md:grid-cols-2 gap-0">
@@ -50,25 +121,27 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
                     <!-- Main Content -->
                     <div class="lg:w-2/3">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                            <h2 class="text-2xl font-bold text-gray-900">Latest Stories</h2>
+                            <h2 class="text-2xl font-bold text-gray-900 flex-shrink-0">Latest Stories</h2>
                             
                             <!-- Filters -->
-                            <div class="flex flex-wrap gap-2">
-                                <button 
-                                    v-for="filter in filters" 
-                                    :key="filter"
-                                    @click="activeFilter = filter"
-                                    class="px-4 py-2 rounded-full text-sm font-medium transition-all"
-                                    :class="activeFilter === filter ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'"
-                                >
-                                    {{ filter }}
-                                </button>
+                            <div class="w-full sm:w-auto overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 scrollbar-hide">
+                                <div class="flex gap-2 min-w-max">
+                                    <button 
+                                        v-for="filter in filters" 
+                                        :key="filter"
+                                        @click="activeFilter = filter"
+                                        class="px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap"
+                                        :class="activeFilter === filter ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'"
+                                    >
+                                        {{ filter }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Grid -->
                         <div class="grid gap-8">
-                            <article v-for="post in latestStories" :key="post.id" class="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-6">
+                            <article v-for="post in posts" :key="post.id" class="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-6">
                                 <div class="w-full sm:w-48 h-48 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                                     <img :src="post.image" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500">
                                 </div>
@@ -76,7 +149,7 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
                                     <div class="flex items-center gap-3 text-xs text-gray-500 mb-3">
                                         <span class="text-blue-600 font-bold uppercase tracking-wider">{{ post.category }}</span>
                                         <span>&bull;</span>
-                                        <span>{{ post.read_time }}</span> <!-- Ensure read_time is available or mocked in transform -->
+                                        <span>{{ post.read_time }}</span>
                                     </div>
                                     <h3 class="text-xl font-bold text-gray-900 mb-3 leading-tight">
                                         <Link :href="route('blog.show', post.slug)" class="hover:text-blue-600 transition-colors">
@@ -96,15 +169,20 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
                                 </div>
                             </article>
                             
-                            <div v-if="latestStories.length === 0" class="text-center py-12 text-gray-500">
+                            <div v-if="posts.length === 0" class="text-center py-12 text-gray-500">
                                 No stories found.
                             </div>
                         </div>
                         
                         <!-- Load More -->
-                        <div v-if="latestStories.length > 0" class="mt-12 text-center">
-                            <button class="px-8 py-3 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 hover:bg-gray-50 transition-colors">
-                                Load More Stories
+                        <div v-if="nextCursor" class="mt-12 text-center">
+                            <button 
+                                @click="loadMore"
+                                :disabled="isLoadingMore"
+                                class="px-8 py-3 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span v-if="isLoadingMore">Loading...</span>
+                                <span v-else>Load More Stories</span>
                             </button>
                         </div>
                     </div>
@@ -116,6 +194,7 @@ const filters = ['All Posts', 'Trends', 'Lifestyle', 'Sustainable'];
                             <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900 mb-6">Search Blog</h3>
                             <div class="relative">
                                 <input 
+                                    v-model="search"
                                     type="text" 
                                     placeholder="Search for style tips..." 
                                     class="w-full pl-4 pr-10 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm"

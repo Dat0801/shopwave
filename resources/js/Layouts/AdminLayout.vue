@@ -5,32 +5,16 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import AdminSidebar from '@/Components/Admin/Sidebar.vue';
+import FlashMessage from '@/Components/FlashMessage.vue';
 
 const showingNavigationDropdown = ref(false);
 const page = usePage();
-
-const flashSuccess = computed(() => page.props.flash?.success);
-const showFlash = ref(false);
-
-import { computed, watch } from 'vue';
-
-watch(flashSuccess, (newVal) => {
-    if (newVal) {
-        showFlash.value = true;
-        setTimeout(() => showFlash.value = false, 3000);
-    }
-});
 </script>
 
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- Flash Message -->
-        <div v-if="showFlash && flashSuccess" class="fixed top-20 right-4 z-50 rounded-lg bg-green-600 px-6 py-3 text-white shadow-lg transition-all duration-500 flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            {{ flashSuccess }}
-        </div>
+        <FlashMessage />
 
         <!-- Sidebar -->
         <AdminSidebar :showing-navigation-dropdown="showingNavigationDropdown" />
