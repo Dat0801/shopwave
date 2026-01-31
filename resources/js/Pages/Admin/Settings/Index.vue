@@ -22,6 +22,8 @@ const getSetting = (group, key, defaultVal = '') => {
 const form = useForm({
     site_name: getSetting('general', 'site_name', 'ShopWave Official'),
     contact_email: getSetting('general', 'contact_email', 'hello@shopwave.com'),
+    contact_phone: getSetting('general', 'contact_phone', ''),
+    address: getSetting('general', 'address', ''),
     seo_description: getSetting('general', 'seo_description', 'The ultimate destination for modern lifestyle products and digital goods.'),
     
     site_logo: null,
@@ -150,6 +152,22 @@ const securityItems = [
                                         <label for="contact_email" class="block text-sm font-medium text-gray-700">Contact Email</label>
                                         <div class="mt-1">
                                             <input type="email" name="contact_email" id="contact_email" v-model="form.contact_email"
+                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label for="contact_phone" class="block text-sm font-medium text-gray-700">Contact Phone</label>
+                                        <div class="mt-1">
+                                            <input type="text" name="contact_phone" id="contact_phone" v-model="form.contact_phone"
+                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-6">
+                                        <label for="address" class="block text-sm font-medium text-gray-700">Contact Address</label>
+                                        <div class="mt-1">
+                                            <input type="text" name="address" id="address" v-model="form.address"
                                                 class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
                                         </div>
                                     </div>

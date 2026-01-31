@@ -40,6 +40,7 @@ const navigation = [
         children: [
             { name: 'Orders', href: route('admin.orders.index'), active: () => route().current('admin.orders.*') },
             { name: 'Customers', href: route('admin.customers.index'), active: () => route().current('admin.customers.*') },
+            { name: 'Contacts', href: route('admin.contacts.index'), active: () => route().current('admin.contacts.*') },
         ]
     },
     {

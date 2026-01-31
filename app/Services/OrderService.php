@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Coupon;
+use App\Notifications\NewOrderNotification;
+use App\Notifications\LowStockNotification;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
@@ -62,6 +64,20 @@ class OrderService
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
                 ]);
+
+                // Check if product stock is low and notify admins
+                if ($product->stock <= 10) {
+                    $admins = User::where('role', 'admin')->get();
+                    foreach ($admins as $admin) {
+                        $admin->notify(new LowStockNotification($product, 10));
+                    }
+                }
+            }
+
+            // Send notification to all admins about new order
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new NewOrderNotification($order));
             }
 
             return $order;

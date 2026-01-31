@@ -87,6 +87,9 @@ class HandleInertiaRequests extends Middleware
                 'favicon' => config('app.favicon'),
                 'currency' => config('app.currency'),
                 'site_name' => config('app.name'),
+                'contact_email' => config('app.contact_email'),
+                'contact_phone' => config('app.contact_phone'),
+                'contact_address' => config('app.contact_address'),
             ],
         ];
     }

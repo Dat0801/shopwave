@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,8 +30,11 @@ class PageController extends Controller
         }
 
         if ($page->slug === 'contact' || $page->slug === 'contact-us') {
+            $contactSettings = Setting::whereIn('key', ['contact_email', 'contact_phone', 'address'])
+                ->pluck('value', 'key');
             return Inertia::render('Admin/Pages/EditContact', [
                 'page' => $page,
+                'contactSettings' => $contactSettings,
             ]);
         }
 
@@ -46,6 +50,9 @@ class PageController extends Controller
             'content' => 'nullable|string',
             'meta' => 'nullable|array',
             'is_active' => 'boolean',
+            'contact_email' => 'nullable|email|max:255',
+            'contact_phone' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
         ]);
 
         // Process File Uploads in Meta (specifically for Team images)
@@ -66,6 +73,23 @@ class PageController extends Controller
         $validated['meta'] = $meta;
 
         $page->update($validated);
+
+        if (in_array($page->slug, ['contact', 'contact-us'])) {
+            $contactFields = [
+                'contact_email' => 'email',
+                'contact_phone' => 'text',
+                'address' => 'text',
+            ];
+
+            foreach ($contactFields as $key => $type) {
+                if ($request->has($key)) {
+                    Setting::updateOrCreate(
+                        ['key' => $key],
+                        ['value' => $request->input($key), 'group' => 'general', 'type' => $type]
+                    );
+                }
+            }
+        }
 
         return back()->with('success', 'Page updated successfully.');
     }
