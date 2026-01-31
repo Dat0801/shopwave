@@ -1,66 +1,55 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { loadStripe } from '@stripe/stripe-js';
 
 const props = defineProps({
     items: {
         type: Array,
-        default: () => [
-            {
-                product_id: 1,
-                name: 'Essential White Tee',
-                size: 'Medium',
-                price: 45.00,
-                quantity: 1,
-                image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80'
-            },
-            {
-                product_id: 2,
-                name: 'Midnight Denim',
-                size: '32/32',
-                price: 120.00,
-                quantity: 1,
-                image: 'https://images.unsplash.com/photo-1542272454374-d41e47575f0f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80'
-            }
-        ]
+        default: () => []
     },
     total: {
         type: Number,
-        default: 165.00
+        default: 0
     },
     discount: {
         type: Number,
         default: 0
+    },
+    stripePublicKey: {
+        type: String,
+        default: ''
     }
 });
 
 const form = useForm({
     email: '',
     newsletter: false,
-    firstName: 'Jane',
-    lastName: 'Doe',
+    firstName: '',
+    lastName: '',
     address: '',
-    city: 'New York',
-    postalCode: '10001',
+    city: '',
+    postalCode: '',
     paymentMethod: 'credit_card',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvc: '',
 });
 
 const couponForm = useForm({
     code: ''
 });
 
-const paymentMethod = ref('credit_card');
+const stripe = ref(null);
+const cardElement = ref(null);
+const stripeElements = ref(null);
+const stripeError = ref('');
+const isLoadingStripe = ref(false);
 
 const subtotal = computed(() => {
     return props.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
 });
 const shipping = 0;
-const taxes = 13.20;
-const grandTotal = computed(() => Math.max(0, subtotal.value - props.discount + shipping + taxes));
+const taxes = computed(() => subtotal.value * 0.08); // 8% tax
+const grandTotal = computed(() => Math.max(0, subtotal.value - props.discount + shipping + taxes.value));
 
 import { getImageUrl } from '@/Utils/image';
 
@@ -77,8 +66,127 @@ const applyCoupon = () => {
     });
 };
 
-const submit = () => {
-    form.post(route('checkout.store'));
+// Initialize Stripe
+onMounted(async () => {
+    if (props.stripePublicKey && form.paymentMethod === 'credit_card') {
+        await initializeStripe();
+    }
+});
+
+// Watch for payment method changes
+watch(() => form.paymentMethod, async (newMethod) => {
+    if (newMethod === 'credit_card' && props.stripePublicKey && !stripe.value) {
+        await initializeStripe();
+    }
+});
+
+const initializeStripe = async () => {
+    try {
+        isLoadingStripe.value = true;
+        stripe.value = await loadStripe(props.stripePublicKey);
+        
+        if (stripe.value) {
+            stripeElements.value = stripe.value.elements();
+            
+            // Create card element
+            cardElement.value = stripeElements.value.create('card', {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#1f2937',
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        '::placeholder': {
+                            color: '#9ca3af',
+                        },
+                    },
+                    invalid: {
+                        color: '#ef4444',
+                    },
+                },
+                hidePostalCode: true,
+            });
+            
+            // Mount card element
+            setTimeout(() => {
+                const cardElementContainer = document.getElementById('card-element');
+                if (cardElementContainer && cardElement.value) {
+                    cardElement.value.mount('#card-element');
+                    
+                    // Listen for errors
+                    cardElement.value.on('change', (event) => {
+                        stripeError.value = event.error ? event.error.message : '';
+                    });
+                }
+            }, 100);
+        }
+    } catch (error) {
+        console.error('Stripe initialization error:', error);
+        stripeError.value = 'Failed to load payment system. Please refresh the page.';
+    } finally {
+        isLoadingStripe.value = false;
+    }
+};
+
+const submit = async () => {
+    stripeError.value = '';
+    
+    // Validate required fields
+    if (!form.firstName || !form.lastName || !form.email || !form.address || !form.city || !form.postalCode) {
+        stripeError.value = 'Please fill in all required fields.';
+        return;
+    }
+    
+    // For non-credit card payments, submit normally
+    if (form.paymentMethod !== 'credit_card') {
+        form.post(route('checkout.store'));
+        return;
+    }
+    
+    // For credit card, validate with Stripe first
+    if (!stripe.value || !cardElement.value) {
+        stripeError.value = 'Payment system not loaded. Please refresh the page.';
+        return;
+    }
+    
+    form.processing = true;
+    
+    try {
+        // Create payment method with Stripe
+        const { error, paymentMethod } = await stripe.value.createPaymentMethod({
+            type: 'card',
+            card: cardElement.value,
+            billing_details: {
+                name: `${form.firstName} ${form.lastName}`,
+                email: form.email,
+                address: {
+                    line1: form.address,
+                    city: form.city,
+                    postal_code: form.postalCode,
+                }
+            },
+        });
+        
+        if (error) {
+            stripeError.value = error.message;
+            form.processing = false;
+            console.error('Stripe error:', error);
+            return;
+        }
+        
+        if (!paymentMethod) {
+            stripeError.value = 'Failed to process card. Please check your card details.';
+            form.processing = false;
+            return;
+        }
+        
+        // Submit form to create order (will redirect to payment processing)
+        form.post(route('checkout.store'));
+        
+    } catch (error) {
+        console.error('Payment error:', error);
+        stripeError.value = 'Payment processing failed. Please try again.';
+        form.processing = false;
+    }
 };
 </script>
 
@@ -100,6 +208,22 @@ const submit = () => {
             <div class="lg:grid lg:grid-cols-12 lg:gap-x-12 lg:items-start">
                 <!-- Left Column: Forms -->
                 <div class="lg:col-span-7 space-y-10">
+                    
+                    <!-- Global Error Alert -->
+                    <div v-if="stripeError" class="rounded-md bg-red-50 border border-red-200 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-red-800">
+                                    {{ stripeError }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- 1. Contact Information -->
                     <section>
@@ -174,20 +298,31 @@ const submit = () => {
                                         </svg>
                                     </div>
                                     
-                                    <!-- Credit Card Details (Expandable) -->
+                                    <!-- Credit Card Details (Stripe Elements) -->
                                     <div v-if="form.paymentMethod === 'credit_card'" class="px-4 pb-4 pt-2 border-t border-gray-200/50 space-y-4">
                                         <div>
-                                            <label for="card-number" class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Card Number</label>
-                                            <input type="text" id="card-number" v-model="form.cardNumber" placeholder="0000 0000 0000 0000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3">
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label for="card-expiry" class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Expiration (MM/YY)</label>
-                                                <input type="text" id="card-expiry" v-model="form.cardExpiry" placeholder="12/26" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3">
+                                            <label for="card-element" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                                Card Information
+                                            </label>
+                                            <div v-if="isLoadingStripe" class="flex items-center justify-center py-4 text-gray-500">
+                                                <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading secure payment...
                                             </div>
-                                            <div>
-                                                <label for="card-cvc" class="block text-xs font-bold text-gray-500 uppercase tracking-wider">CVV</label>
-                                                <input type="text" id="card-cvc" v-model="form.cardCvc" placeholder="123" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3">
+                                            <div 
+                                                id="card-element" 
+                                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-3 bg-white"
+                                            ></div>
+                                            <div v-if="stripeError" class="mt-2 text-sm text-red-600">
+                                                {{ stripeError }}
+                                            </div>
+                                            <div class="mt-2 flex items-center text-xs text-gray-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-1">
+                                                    <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                                                </svg>
+                                                Your card information is encrypted and secure
                                             </div>
                                         </div>
                                     </div>
@@ -290,7 +425,7 @@ const submit = () => {
                                 <dd class="text-green-600">Free</dd>
                             </div>
                             <div class="flex items-center justify-between">
-                                <dt class="text-gray-600">Taxes</dt>
+                                <dt class="text-gray-600">Taxes (8%)</dt>
                                 <dd>${{ taxes.toFixed(2) }}</dd>
                             </div>
                             <div class="flex items-center justify-between border-t border-gray-200 pt-4">

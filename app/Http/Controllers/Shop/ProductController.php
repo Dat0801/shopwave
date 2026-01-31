@@ -83,16 +83,71 @@ class ProductController extends Controller
 
     public function show(Product $product): Response
     {
-        $product->load(['category', 'variants', 'reviews' => function ($query) {
-            $query->where('status', 'approved')->with('user')->latest();
-        }]);
+        // Load relationships with specific attributes for optimization
+        $product->load([
+            'category:id,name,slug',
+            'variants' => function ($query) {
+                $query->where('active', true)
+                    ->select('id', 'product_id', 'name', 'sku', 'price', 'stock', 'options');
+            },
+            'reviews' => function ($query) {
+                $query->where('status', 'approved')
+                    ->with('user:id,name')
+                    ->latest()
+                    ->select('id', 'user_id', 'product_id', 'rating', 'comment', 'status', 'created_at');
+            },
+        ]);
+
+        // Get related products with necessary fields
+        $relatedProducts = Product::where('category_id', $product->category_id)
+            ->where('id', '!=', $product->id)
+            ->where('status', true)
+            ->select('id', 'name', 'slug', 'price', 'sale_price', 'image_path')
+            ->take(4)
+            ->get();
+
+        // Calculate review statistics
+        $reviewStats = [
+            'average' => $product->reviews->avg('rating') ?? 0,
+            'total' => $product->reviews->count(),
+            'distribution' => [
+                5 => $product->reviews->where('rating', 5)->count(),
+                4 => $product->reviews->where('rating', 4)->count(),
+                3 => $product->reviews->where('rating', 3)->count(),
+                2 => $product->reviews->where('rating', 2)->count(),
+                1 => $product->reviews->where('rating', 1)->count(),
+            ],
+        ];
+
+        // Extract available colors and sizes from variants
+        $colors = collect();
+        $sizes = collect();
+
+        foreach ($product->variants as $variant) {
+            if (isset($variant->options['Color'])) {
+                $colors->push($variant->options['Color']);
+            }
+            if (isset($variant->options['Size'])) {
+                $sizes->push($variant->options['Size']);
+            }
+        }
+
+        $availableOptions = [
+            'colors' => $colors->unique()->filter()->values(),
+            'sizes' => $sizes->unique()->filter()->values(),
+        ];
+
+        // Check if product is in user's wishlist
+        $isInWishlist = auth()->check()
+            ? auth()->user()->wishlist()->where('product_id', $product->id)->exists()
+            : false;
 
         return Inertia::render('Shop/Show', [
             'product' => $product,
-            'relatedProducts' => Product::where('category_id', $product->category_id)
-            ->where('id', '!=', $product->id)
-            ->take(4)
-            ->get(),
+            'relatedProducts' => $relatedProducts,
+            'reviewStats' => $reviewStats,
+            'availableOptions' => $availableOptions,
+            'isInWishlist' => $isInWishlist,
         ]);
     }
 }

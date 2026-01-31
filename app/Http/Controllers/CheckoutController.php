@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Coupon;
 use App\Services\OrderService;
+use App\Services\StripePaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,9 +12,10 @@ use Inertia\Response;
 
 class CheckoutController extends Controller
 {
-    public function __construct(private readonly OrderService $orderService)
-    {
-    }
+    public function __construct(
+        private readonly OrderService $orderService,
+        private readonly StripePaymentService $stripePaymentService
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -47,6 +49,7 @@ class CheckoutController extends Controller
             'total' => $total,
             'discount' => $discount,
             'totalAfterDiscount' => $total - $discount,
+            'stripePublicKey' => config('stripe.public_key'),
         ]);
     }
 
@@ -80,6 +83,27 @@ class CheckoutController extends Controller
 
         try {
             $order = $this->orderService->createFromCart($request->user(), $cart, $shippingAddress, $couponCode, $paymentMethod);
+
+            // For card payments, redirect to payment page
+            if ($paymentMethod === 'credit_card') {
+                // Calculate amount in cents
+                $totalAmount = $order->total_price - $order->discount_amount;
+                $amountInCents = (int) ($totalAmount * 100);
+
+                // Create payment intent
+                $payment = $this->stripePaymentService->createPaymentIntent($order, $amountInCents);
+
+                $request->session()->forget('cart');
+                $request->session()->forget('coupon_code');
+
+                return redirect()->route('payment.process', ['orderId' => $order->id, 'paymentId' => $payment->id]);
+            }
+
+            // For COD or PayPal, order is placed immediately
+            $request->session()->forget('cart');
+            $request->session()->forget('coupon_code');
+
+            return redirect()->route('orders.index')->with('success', 'Order placed. #'.$order->id);
         } catch (\RuntimeException $exception) {
             return redirect()->route('cart.index')->with('error', $exception->getMessage());
         } catch (\Throwable $exception) {
@@ -90,10 +114,5 @@ class CheckoutController extends Controller
                 'Unable to place order right now. Please try again.'
             );
         }
-
-        $request->session()->forget('cart');
-        $request->session()->forget('coupon_code');
-
-        return redirect()->route('orders.index')->with('success', 'Order placed. #'.$order->id);
     }
 }

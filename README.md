@@ -23,7 +23,8 @@ Shopwave is a modern, full-featured e-commerce application built with **Laravel 
 - **Home Page:** Dynamic hero slider, trending products, and category highlights.
 - **Product Catalog:** Browse products by category, view details, and filter options.
 - **Shopping Cart:** Real-time cart management.
-- **Checkout:** Streamlined checkout process with shipping address management.
+- **Checkout:** Streamlined checkout process with **Stripe payment integration** and shipping address management.
+- **Payment:** Secure Stripe payment processing with PCI-compliant card elements.
 - **User Account:** Order history, profile management, and saved addresses.
 - **Reviews:** Product review and rating system.
 

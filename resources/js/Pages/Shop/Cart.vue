@@ -6,6 +6,10 @@ import { computed, ref } from 'vue';
 const props = defineProps({
     items: Array,
     total: Number,
+    discount: {
+        type: Number,
+        default: 0,
+    },
 });
 
 const updateForm = useForm({});
@@ -27,12 +31,12 @@ const removeItem = (item) => {
 };
 
 const subtotal = computed(() => {
-    return props.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return props.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
 });
 
-const tax = computed(() => (subtotal.value - props.discount) * 0.05); // Mock 5% tax on discounted amount
+const tax = computed(() => Math.max(0, subtotal.value - (props.discount || 0)) * 0.05); // Mock 5% tax on discounted amount
 const shipping = 0; // Free shipping
-const grandTotal = computed(() => Math.max(0, subtotal.value - props.discount + tax.value + shipping));
+const grandTotal = computed(() => Math.max(0, subtotal.value - (props.discount || 0) + tax.value + shipping));
 
 import { getImageUrl } from '@/Utils/image';
 const getProductImageUrl = (item) => {

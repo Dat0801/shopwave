@@ -1,12 +1,10 @@
 <script setup>
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import Button from '@/Components/Button.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { getImageUrl } from '@/Utils/image';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
 import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -15,11 +13,15 @@ import ProductCard from '@/Components/Shop/ProductCard.vue';
 const props = defineProps({
     product: Object,
     relatedProducts: Array,
+    reviewStats: Object,
+    availableOptions: Object,
+    isInWishlist: Boolean,
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const showReviewForm = ref(false);
+const isInWishlist = ref(props.isInWishlist);
 
 const form = useForm({
     quantity: 1,
@@ -27,66 +29,67 @@ const form = useForm({
     size: null,
 });
 
+const wishlistForm = useForm({});
+
 const price = computed(() => props.product.sale_price || props.product.price);
 const discountPercentage = computed(() => {
     if (!props.product.sale_price) return 0;
     return Math.round(((props.product.price - props.product.sale_price) / props.product.price) * 100);
 });
 
-// Mock Data
-const colors = [
-    { name: 'Indigo Wash', value: 'indigo-wash', class: 'bg-blue-700' },
-    { name: 'Black', value: 'black', class: 'bg-gray-900' },
-    { name: 'Grey', value: 'grey', class: 'bg-gray-400' },
-    { name: 'Light Blue', value: 'light-blue', class: 'bg-blue-200' },
-];
-
-const sizes = ['S', 'M', 'L', 'XL'];
-
-const features = [
-    '100% Cotton Premium Heavyweight Denim',
-    'Adjustable button waist tabs',
-    'Two chest pockets and two side welt pockets',
-    'Pre-washed for a soft, broken-in feel',
-    'Ethically sourced and manufactured',
-];
-
-const reviews = [
-    {
-        id: 1,
-        author: 'Jason D.',
-        verified: true,
-        rating: 5,
-        title: 'Perfect fit and quality!',
-        content: "I've been looking for a trucker jacket that isn't too stiff. This one felt broken-in right out of the box. The wash is exactly as pictured. Highly recommend!",
-        date: '2 weeks ago',
-    },
-    {
-        id: 2,
-        author: 'Marcos L.',
-        verified: true,
-        rating: 5,
-        title: 'Solid jacket, slightly large',
-        content: "Great quality denim. I'm 6'1\" and usually a Large, but it feels a bit roomy. Still looks great with a hoodie underneath though.",
-        date: '1 month ago',
-    },
-];
-
-const totalReviews = computed(() => reviews.length);
-
-const averageRating = computed(() => {
-    if (totalReviews.value === 0) return 0;
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
-    return (sum / totalReviews.value).toFixed(1);
+// Get colors and sizes from product variants
+const colors = computed(() => {
+    if (!props.availableOptions?.colors?.length) {
+        return [{ name: 'Default', value: 'default', class: 'bg-gray-400' }];
+    }
+    
+    const colorMap = {
+        'Black': 'bg-gray-900',
+        'White': 'bg-white border-gray-300',
+        'Red': 'bg-red-600',
+        'Blue': 'bg-blue-600',
+        'Green': 'bg-green-600',
+        'Yellow': 'bg-yellow-400',
+        'Grey': 'bg-gray-400',
+        'Gray': 'bg-gray-400',
+        'Indigo': 'bg-blue-700',
+        'Light Blue': 'bg-blue-200',
+    };
+    
+    return props.availableOptions.colors.map(color => ({
+        name: color,
+        value: color.toLowerCase().replace(/\s+/g, '-'),
+        class: colorMap[color] || 'bg-gray-400'
+    }));
 });
 
-const ratingCounts = computed(() => {
-    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    reviews.forEach(review => {
-        counts[review.rating] = (counts[review.rating] || 0) + 1;
-    });
-    return counts;
+const sizes = computed(() => {
+    if (!props.availableOptions?.sizes?.length) {
+        return ['M'];
+    }
+    return props.availableOptions.sizes;
 });
+
+const features = computed(() => {
+    // Extract features from description or use defaults
+    return [
+        '100% Cotton Premium Heavyweight Denim',
+        'Adjustable button waist tabs',
+        'Two chest pockets and two side welt pockets',
+        'Pre-washed for a soft, broken-in feel',
+        'Ethically sourced and manufactured',
+    ];
+});
+
+const reviews = computed(() => props.product.reviews || []);
+
+const totalReviews = computed(() => props.reviewStats?.total || 0);
+
+const averageRating = computed(() => props.reviewStats?.average || 0);
+
+const averageRatingRounded = computed(() => Math.round(averageRating.value));
+
+const ratingCounts = computed(() => props.reviewStats?.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
 
 const ratingPercentages = computed(() => {
     if (totalReviews.value === 0) return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -95,6 +98,11 @@ const ratingPercentages = computed(() => {
         percentages[i] = Math.round((ratingCounts.value[i] / totalReviews.value) * 100);
     }
     return percentages;
+});
+
+const reviewForm = useForm({
+    rating: 5,
+    comment: '',
 });
 
 // State
@@ -109,7 +117,7 @@ const getProductImageUrl = (path) => {
 
 // Mock Images (using placeholder if no real images)
 const images = computed(() => [
-    getProductImageUrl(props.product.image_path),
+    props.product.image_path,
     null,
     null,
     null
@@ -118,10 +126,53 @@ const images = computed(() => [
 const addToCart = () => {
     form.transform((data) => ({
         ...data,
-        color: selectedColor.value.value,
+        color: selectedColor.value?.value,
         size: selectedSize.value,
     })).post(route('cart.store', props.product.id), {
         preserveScroll: true,
+    });
+};
+
+const toggleWishlist = () => {
+    if (!user.value) {
+        window.location.href = route('login');
+        return;
+    }
+
+    if (isInWishlist.value) {
+        wishlistForm.delete(route('wishlist.destroy', props.product.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isInWishlist.value = false;
+            },
+        });
+    } else {
+        wishlistForm.post(route('wishlist.store', props.product.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isInWishlist.value = true;
+            },
+        });
+    }
+};
+
+const submitReview = () => {
+    reviewForm.post(route('products.reviews.store', props.product.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            reviewForm.reset('comment');
+            reviewForm.rating = 5;
+            showReviewForm.value = false;
+        },
+    });
+};
+
+const formatReviewDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
     });
 };
 </script>
@@ -188,13 +239,13 @@ const addToCart = () => {
                 <!-- Reviews -->
                 <div class="mt-4 flex items-center">
                     <div class="flex items-center text-blue-500">
-                        <svg v-for="i in 5" :key="i" class="h-5 w-5 flex-shrink-0" :class="i <= 4 ? 'fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
+                        <svg v-for="i in 5" :key="i" class="h-5 w-5 flex-shrink-0" :class="i <= averageRatingRounded ? 'fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                     </div>
-                    <span class="ml-3 text-sm font-medium text-gray-500">{{ reviews.length > 0 ? '4.8' : 'No ratings' }}</span>
+                    <span class="ml-3 text-sm font-medium text-gray-500">{{ totalReviews > 0 ? averageRating.toFixed(1) : 'No ratings' }}</span>
                     <span class="ml-2 text-sm text-gray-400">|</span>
-                    <a href="#reviews" class="ml-2 text-sm text-gray-500 hover:text-blue-600 underline decoration-gray-300 underline-offset-2">{{ reviews.length }} Reviews</a>
+                    <a href="#reviews" class="ml-2 text-sm text-gray-500 hover:text-blue-600 underline decoration-gray-300 underline-offset-2">{{ totalReviews }} Reviews</a>
                 </div>
 
                 <!-- Price -->
@@ -210,14 +261,14 @@ const addToCart = () => {
                         <svg class="mr-1.5 h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                         </svg>
-                        In Stock
+                        {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
                     </p>
                 </div>
 
                 <div class="mt-8 border-t border-gray-100 pt-8">
                     <!-- Color Selection -->
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide">Color: <span class="text-gray-500 normal-case">{{ selectedColor.name }}</span></h3>
+                    <div v-if="colors.length > 1 || (colors.length === 1 && colors[0].value !== 'default')">
+                        <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide">Color: <span class="text-gray-500 normal-case">{{ selectedColor?.name || 'Select' }}</span></h3>
                         <div class="mt-3 flex items-center space-x-3">
                             <button
                                 v-for="color in colors"
@@ -225,7 +276,7 @@ const addToCart = () => {
                                 @click="selectedColor = color"
                                 :class="[
                                     color.class,
-                                    selectedColor.value === color.value ? 'ring-2 ring-offset-2 ring-blue-600' : 'ring-1 ring-transparent hover:ring-gray-300',
+                                    selectedColor?.value === color.value ? 'ring-2 ring-offset-2 ring-blue-600' : 'ring-1 ring-transparent hover:ring-gray-300',
                                     'h-8 w-8 rounded-full border border-black/10 focus:outline-none'
                                 ]"
                                 :aria-label="color.name"
@@ -234,7 +285,7 @@ const addToCart = () => {
                     </div>
 
                     <!-- Size Selection -->
-                    <div class="mt-6">
+                    <div v-if="sizes.length > 0" :class="colors.length > 1 ? 'mt-6' : ''">
                         <div class="flex items-center justify-between">
                             <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide">Select Size</h3>
                             <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-500">Size Guide</a>
@@ -270,12 +321,22 @@ const addToCart = () => {
                         </button>
                         <button
                             type="button"
-                            class="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-8 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                            @click="toggleWishlist"
+                            :class="[
+                                isInWishlist 
+                                    ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100' 
+                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+                                'flex w-full items-center justify-center rounded-lg border px-8 py-4 text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors'
+                            ]"
                         >
-                            <svg class="mr-2 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg 
+                                :class="['mr-2 h-5 w-5', isInWishlist ? 'text-red-600' : 'text-gray-400']" 
+                                :fill="isInWishlist ? 'currentColor' : 'none'"
+                                viewBox="0 0 20 20"
+                            >
                                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
                             </svg>
-                            Save to Wishlist
+                            {{ isInWishlist ? 'Remove from Wishlist' : 'Save to Wishlist' }}
                         </button>
                     </div>
 
@@ -370,14 +431,14 @@ const addToCart = () => {
                 <!-- Summary -->
                 <div class="w-full md:w-1/3">
                     <div class="flex items-center gap-4">
-                        <p class="text-5xl font-bold text-gray-900">4.8</p>
+                        <p class="text-5xl font-bold text-gray-900">{{ totalReviews > 0 ? averageRating.toFixed(1) : '0.0' }}</p>
                         <div>
                             <div class="flex text-blue-500">
-                                <svg v-for="i in 5" :key="i" class="h-5 w-5 flex-shrink-0 fill-current" viewBox="0 0 20 20">
+                                <svg v-for="i in 5" :key="i" class="h-5 w-5 flex-shrink-0" :class="i <= averageRatingRounded ? 'fill-current' : 'text-gray-300 fill-current'" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                 </svg>
                             </div>
-                            <p class="mt-1 text-sm text-gray-500">Based on 128 reviews</p>
+                            <p class="mt-1 text-sm text-gray-500">{{ totalReviews > 0 ? `Based on ${totalReviews} review${totalReviews > 1 ? 's' : ''}` : 'No reviews yet' }}</p>
                         </div>
                     </div>
 
@@ -385,9 +446,9 @@ const addToCart = () => {
                         <div v-for="i in 5" :key="i" class="flex items-center gap-3">
                             <span class="text-sm font-medium text-gray-600 w-3">{{ 6-i }}</span>
                             <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                                <div class="h-full bg-blue-500" :style="{ width: (i === 1 ? '70%' : i === 2 ? '20%' : i === 3 ? '5%' : i === 4 ? '3%' : '2%') }"></div>
+                                <div class="h-full bg-blue-500" :style="{ width: `${ratingPercentages[6 - i] || 0}%` }"></div>
                             </div>
-                            <span class="text-sm text-gray-400 w-8 text-right">{{ i === 1 ? '70%' : i === 2 ? '20%' : i === 3 ? '5%' : i === 4 ? '3%' : '2%' }}</span>
+                            <span class="text-sm text-gray-400 w-8 text-right">{{ ratingPercentages[6 - i] || 0 }}%</span>
                         </div>
                     </div>
 
@@ -411,10 +472,13 @@ const addToCart = () => {
 
                 <!-- Reviews List -->
                 <div class="w-full md:w-2/3 space-y-8">
+                    <div v-if="reviews.length === 0" class="rounded-2xl border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                        No reviews yet. Be the first to share your experience.
+                    </div>
                     <div v-for="review in reviews" :key="review.id" class="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
                         <div class="flex items-center justify-between">
-                            <h4 class="font-bold text-gray-900">{{ review.title }}</h4>
-                            <span class="text-sm text-gray-500">{{ review.date }}</span>
+                            <h4 class="font-bold text-gray-900">{{ review.user?.name || 'Anonymous' }}</h4>
+                            <span class="text-sm text-gray-500">{{ formatReviewDate(review.created_at) }}</span>
                         </div>
                         <div class="mt-1 flex items-center">
                             <div class="flex text-blue-500">
@@ -423,16 +487,7 @@ const addToCart = () => {
                                 </svg>
                             </div>
                         </div>
-                        <p class="mt-4 text-gray-600 leading-relaxed">{{ review.content }}</p>
-                        <div class="mt-4 flex items-center gap-2">
-                            <span class="font-medium text-gray-900">{{ review.author }}</span>
-                            <span v-if="review.verified" class="flex items-center text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium border border-green-100">
-                                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                </svg>
-                                Verified Buyer
-                            </span>
-                        </div>
+                        <p class="mt-4 text-gray-600 leading-relaxed">{{ review.comment }}</p>
                     </div>
                 </div>
             </div>

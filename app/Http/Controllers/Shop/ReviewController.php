@@ -3,22 +3,19 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shop\StoreReviewRequest;
 use App\Models\Product;
 use App\Models\Review;
-use Illuminate\Http\Request;
+use App\Services\ReviewModerationService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    public function store(Request $request, Product $product): RedirectResponse
-    {
-        $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|max:1000',
-        ]);
+    public function __construct(private readonly ReviewModerationService $moderationService) {}
 
-        $existingReview = Review::where('user_id', Auth::id())
+    public function store(StoreReviewRequest $request, Product $product): RedirectResponse
+    {
+        $existingReview = Review::where('user_id', $request->user()->id)
             ->where('product_id', $product->id)
             ->first();
 
@@ -26,13 +23,22 @@ class ReviewController extends Controller
             return redirect()->back()->with('error', 'You have already reviewed this product.');
         }
 
-        Review::create([
-            'user_id' => Auth::id(),
+        $validated = $request->validated();
+
+        $review = Review::create([
+            'user_id' => $request->user()->id,
             'product_id' => $product->id,
-            'rating' => $request->rating,
-            'comment' => $request->comment,
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'],
             'status' => 'pending',
         ]);
+
+        // Auto-approve if meets moderation criteria
+        if ($this->moderationService->shouldAutoApprove($review)) {
+            $review->update(['status' => 'approved']);
+
+            return redirect()->back()->with('success', 'Thank you! Your review has been published.');
+        }
 
         return redirect()->back()->with('success', 'Review submitted successfully and is pending approval.');
     }

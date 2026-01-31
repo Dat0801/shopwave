@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateReviewStatusRequest;
 use App\Models\Review;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,14 +43,10 @@ class ReviewController extends Controller
     /**
      * Update the status of the specified resource.
      */
-    public function updateStatus(Request $request, Review $review): RedirectResponse
+    public function updateStatus(UpdateReviewStatusRequest $request, Review $review): RedirectResponse
     {
-        $request->validate([
-            'status' => 'required|in:pending,approved,rejected',
-        ]);
-
         $review->update([
-            'status' => $request->status,
+            'status' => $request->validated('status'),
         ]);
 
         return back()->with('success', 'Review status updated successfully.');

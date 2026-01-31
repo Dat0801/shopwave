@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -16,7 +15,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Shop\ProductController as ShopProductController;
 use App\Http\Controllers\Shop\ReviewController;
 use App\Http\Controllers\Shop\WishlistController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -25,13 +24,13 @@ Route::get('/', WelcomeController::class)->name('home');
 Route::get('/shop', [ShopProductController::class, 'index'])->name('shop.index');
 Route::get('/about-us', function () {
     $page = \App\Models\Page::where('slug', 'about-us')->firstOrFail();
+
     return Inertia::render('About', ['page' => $page]);
 })->name('about');
 Route::get('/contact', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
 Route::get('/blog', [\App\Http\Controllers\Shop\BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [\App\Http\Controllers\Shop\BlogController::class, 'show'])->name('blog.show');
-
 
 Route::get('/products/{product:slug}', [ShopProductController::class, 'show'])
     ->name('shop.show');
@@ -46,10 +45,15 @@ Route::delete('/cart/coupon', [CartController::class, 'removeCoupon'])->name('ca
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::get('/payment/{orderId}/process/{paymentId}', [\App\Http\Controllers\PaymentController::class, 'process'])->name('payment.process');
 
     Route::get('/orders', [OrderHistoryController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderHistoryController::class, 'show'])->name('orders.show');
     Route::patch('/orders/{order}/cancel', [OrderHistoryController::class, 'cancel'])->name('orders.cancel');
+
+    // Payment Routes
+    Route::post('/payments/create-intent', [\App\Http\Controllers\PaymentController::class, 'createIntent'])->name('payments.create-intent');
+    Route::post('/payments/confirm', [\App\Http\Controllers\PaymentController::class, 'confirm'])->name('payments.confirm');
 });
 
 Route::middleware('auth')->group(function () {
@@ -66,9 +70,9 @@ Route::middleware('auth')->group(function () {
 
     // Wishlist Routes
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/move-all-to-cart', [WishlistController::class, 'moveAllToCart'])->name('wishlist.move-all');
     Route::post('/wishlist/{product}', [WishlistController::class, 'store'])->name('wishlist.store');
     Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy'])->name('wishlist.destroy');
-    Route::post('/wishlist/move-all-to-cart', [WishlistController::class, 'moveAllToCart'])->name('wishlist.move-all');
 
     Route::post('/comments/{type}/{id}', [\App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
     Route::delete('/comments/{comment}', [\App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
@@ -108,13 +112,13 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('reviews', [\App\Http\Controllers\Admin\ReviewController::class, 'index'])->name('reviews.index');
         Route::patch('reviews/{review}/update-status', [\App\Http\Controllers\Admin\ReviewController::class, 'updateStatus'])->name('reviews.update-status');
         Route::delete('reviews/{review}', [\App\Http\Controllers\Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
-        
+
         // Contact Management
         Route::get('contacts', [AdminContactController::class, 'index'])->name('contacts.index');
         Route::get('contacts/{contact}', [AdminContactController::class, 'show'])->name('contacts.show');
         Route::patch('contacts/{contact}/status', [AdminContactController::class, 'updateStatus'])->name('contacts.update-status');
         Route::delete('contacts/{contact}', [AdminContactController::class, 'destroy'])->name('contacts.destroy');
-        
+
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
         Route::resource('blog', \App\Http\Controllers\Admin\BlogController::class);
@@ -130,5 +134,8 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::delete('navigations/{navigation}', [\App\Http\Controllers\Admin\NavigationController::class, 'destroy'])->name('navigations.destroy');
         Route::post('navigations/reorder', [\App\Http\Controllers\Admin\NavigationController::class, 'reorder'])->name('navigations.reorder');
     });
+
+// Stripe Webhook (not protected by auth)
+Route::post('/webhooks/stripe', [\App\Http\Controllers\PaymentController::class, 'webhook'])->name('webhooks.stripe');
 
 require __DIR__.'/auth.php';
