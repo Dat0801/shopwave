@@ -20,18 +20,85 @@ const props = defineProps({
     stripePublicKey: {
         type: String,
         default: ''
+    },
+    user: {
+        type: Object,
+        default: null
+    },
+    defaultAddress: {
+        type: Object,
+        default: null
+    },
+    addresses: {
+        type: Array,
+        default: () => []
+    },
+    paymentMethods: {
+        type: Array,
+        default: () => []
     }
 });
 
+// Ref for selected address and payment method
+const selectedAddressId = ref(null);
+const selectedPaymentMethodId = ref(null);
+
+// Split user name into first and last name
+const splitName = (fullName) => {
+    if (!fullName) return { firstName: '', lastName: '' };
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+        return { firstName: parts[0], lastName: '' };
+    }
+    const lastName = parts.pop();
+    const firstName = parts.join(' ');
+    return { firstName, lastName };
+};
+
+// Get first address or default address
+const getInitialAddress = () => {
+    if (props.defaultAddress) {
+        return props.defaultAddress;
+    }
+    if (props.addresses && props.addresses.length > 0) {
+        return props.addresses[0];
+    }
+    return null;
+};
+
+const initialAddress = getInitialAddress();
+
+// Use default address if available, otherwise use user name
+let firstName = '';
+let lastName = '';
+
+if (initialAddress) {
+    selectedAddressId.value = initialAddress.id;
+    const nameParts = splitName(initialAddress.name);
+    firstName = nameParts.firstName;
+    lastName = nameParts.lastName;
+} else if (props.user) {
+    const nameParts = splitName(props.user.name);
+    firstName = nameParts.firstName;
+    lastName = nameParts.lastName;
+}
+
+// Set default payment method
+if (props.paymentMethods && props.paymentMethods.length > 0) {
+    const defaultPaymentMethod = props.paymentMethods.find(pm => pm.is_default);
+    selectedPaymentMethodId.value = defaultPaymentMethod ? defaultPaymentMethod.id : props.paymentMethods[0].id;
+}
+
 const form = useForm({
-    email: '',
+    email: props.user?.email || '',
     newsletter: false,
-    firstName: '',
-    lastName: '',
-    address: '',
-    city: '',
-    postalCode: '',
+    firstName: firstName,
+    lastName: lastName,
+    address: initialAddress?.address_line_1 || '',
+    city: initialAddress?.city || '',
+    postalCode: initialAddress?.postal_code || '',
     paymentMethod: 'credit_card',
+    paymentMethodId: null, // For saved payment methods
 });
 
 const couponForm = useForm({
@@ -66,18 +133,41 @@ const applyCoupon = () => {
     });
 };
 
+// Watch for address selection change
+watch(() => selectedAddressId.value, (newAddressId) => {
+    if (newAddressId) {
+        const selected = props.addresses.find(addr => addr.id === newAddressId);
+        if (selected) {
+            const nameParts = splitName(selected.name);
+            form.firstName = nameParts.firstName;
+            form.lastName = nameParts.lastName;
+            form.address = selected.address_line_1;
+            form.city = selected.city;
+            form.postalCode = selected.postal_code;
+        }
+    }
+});
+
 // Initialize Stripe
 onMounted(async () => {
-    if (props.stripePublicKey && form.paymentMethod === 'credit_card') {
+    // Only initialize if credit card selected AND no saved card selected
+    if (props.stripePublicKey && form.paymentMethod === 'credit_card' && !selectedPaymentMethodId.value) {
         await initializeStripe();
     }
 });
 
 // Watch for payment method changes
 watch(() => form.paymentMethod, async (newMethod) => {
-    if (newMethod === 'credit_card' && props.stripePublicKey && !stripe.value) {
+    // Only initialize if credit card selected AND no saved card selected
+    if (newMethod === 'credit_card' && props.stripePublicKey && !stripe.value && !selectedPaymentMethodId.value) {
         await initializeStripe();
     }
+});
+
+// Watch for saved payment method selection changes
+watch(() => selectedPaymentMethodId.value, () => {
+    // When selecting a saved card, no need for Stripe - card element will be hidden
+    // When unselecting, Stripe will be initialized by paymentMethod watcher
 });
 
 const initializeStripe = async () => {
@@ -142,7 +232,14 @@ const submit = async () => {
         return;
     }
     
-    // For credit card, validate with Stripe first
+    // If using saved card, submit directly without Stripe
+    if (selectedPaymentMethodId.value) {
+        form.paymentMethodId = selectedPaymentMethodId.value;
+        form.post(route('checkout.store'));
+        return;
+    }
+    
+    // For new credit card, validate with Stripe
     if (!stripe.value || !cardElement.value) {
         stripeError.value = 'Payment system not loaded. Please refresh the page.';
         return;
@@ -252,6 +349,22 @@ const submit = async () => {
                             <h2 class="text-lg font-bold text-gray-900">Shipping Address</h2>
                         </div>
                         <div class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                            <!-- Saved Addresses Selection -->
+                            <div v-if="addresses.length > 0" class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-3">Use Saved Address</label>
+                                <div class="space-y-2">
+                                    <div v-for="address in addresses" :key="address.id" class="flex items-center p-3 border rounded-lg cursor-pointer" :class="selectedAddressId === address.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
+                                        <input type="radio" :id="`address-${address.id}`" :value="address.id" v-model="selectedAddressId" class="h-4 w-4 text-blue-600">
+                                        <label :for="`address-${address.id}`" class="ml-3 flex-1 cursor-pointer">
+                                            <p class="font-medium text-gray-900">{{ address.label }}</p>
+                                            <p class="text-sm text-gray-600">{{ address.address_line_1 }}, {{ address.city }}</p>
+                                        </label>
+                                    </div>
+                                </div>
+                                <hr class="my-6">
+                            </div>
+
+                            <!-- Manual Address Input -->
                             <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                                 <div>
                                     <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
@@ -285,12 +398,41 @@ const submit = async () => {
                         </div>
                         <div class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
                             <div class="space-y-4">
-                                <!-- Credit Card Option -->
-                                <div class="rounded-md border" :class="form.paymentMethod === 'credit_card' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
-                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="form.paymentMethod = 'credit_card'">
+                                <!-- Saved Payment Methods Options -->
+                                <template v-if="paymentMethods.length > 0">
+                                    <div v-for="pm in paymentMethods" :key="`pm-${pm.id}`">
+                                        <div class="rounded-md border cursor-pointer transition" :class="selectedPaymentMethodId === pm.id ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300'">
+                                            <div class="p-4 flex items-center justify-between" @click="selectedPaymentMethodId = pm.id; form.paymentMethod = 'credit_card'">
+                                                <div class="flex items-center flex-1">
+                                                    <input type="radio" :id="`payment-${pm.id}`" :value="pm.id" v-model="selectedPaymentMethodId" @change="form.paymentMethod = 'credit_card'" class="h-4 w-4 text-blue-600">
+                                                    <label :for="`payment-${pm.id}`" class="ml-3 flex-1 cursor-pointer">
+                                                        <p class="font-medium text-gray-900">{{ pm.label }} - {{ pm.brand }} ••••{{ pm.last4 }}</p>
+                                                        <p class="text-sm text-gray-600">Expires {{ pm.exp_month }}/{{ pm.exp_year }}</p>
+                                                    </label>
+                                                </div>
+                                                <svg class="h-5 w-6 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                                                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                                                    <path d="M2 10h20" stroke="white" stroke-width="2" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="relative py-4">
+                                        <div class="absolute inset-0 flex items-center">
+                                            <div class="w-full border-t border-gray-300"></div>
+                                        </div>
+                                        <div class="relative flex justify-center text-sm">
+                                            <span class="px-2 bg-white text-gray-500">Or add a new card</span>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Credit Card Option (New Card) -->
+                                <div class="rounded-md border cursor-pointer transition" :class="form.paymentMethod === 'credit_card' && !selectedPaymentMethodId ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300'">
+                                    <div class="p-4 flex items-center justify-between" @click="form.paymentMethod = 'credit_card'; selectedPaymentMethodId = null">
                                         <div class="flex items-center">
-                                            <input type="radio" name="payment-method" value="credit_card" v-model="form.paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
-                                            <label class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">Credit Card</label>
+                                            <input v-if="!selectedPaymentMethodId" type="radio" id="payment-new-card" name="payment-method" value="credit_card" v-model="form.paymentMethod" @change="selectedPaymentMethodId = null" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label for="payment-new-card" class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">Add New Credit Card</label>
                                         </div>
                                         <svg class="h-5 w-6 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
                                             <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -299,7 +441,7 @@ const submit = async () => {
                                     </div>
                                     
                                     <!-- Credit Card Details (Stripe Elements) -->
-                                    <div v-if="form.paymentMethod === 'credit_card'" class="px-4 pb-4 pt-2 border-t border-gray-200/50 space-y-4">
+                                    <div v-if="form.paymentMethod === 'credit_card' && !selectedPaymentMethodId" class="px-4 pb-4 pt-2 border-t border-gray-200/50 space-y-4">
                                         <div>
                                             <label for="card-element" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                                                 Card Information
@@ -329,11 +471,11 @@ const submit = async () => {
                                 </div>
 
                                 <!-- PayPal Option -->
-                                <div class="rounded-md border" :class="form.paymentMethod === 'paypal' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
-                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="form.paymentMethod = 'paypal'">
+                                <div class="rounded-md border cursor-pointer transition" :class="form.paymentMethod === 'paypal' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300'">
+                                    <div class="p-4 flex items-center justify-between" @click="form.paymentMethod = 'paypal'; selectedPaymentMethodId = null">
                                         <div class="flex items-center">
-                                            <input type="radio" name="payment-method" value="paypal" v-model="form.paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
-                                            <label class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">PayPal</label>
+                                            <input type="radio" id="payment-paypal" name="payment-method" value="paypal" v-model="form.paymentMethod" @change="selectedPaymentMethodId = null" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label for="payment-paypal" class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">PayPal</label>
                                         </div>
                                         <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.946 5.425-3.646 6.794-8.263 6.794H10.3c-.578 0-1.075.418-1.17 1.009l-.506 3.454c-.024.175.006.356.104.496.098.14.258.223.428.223h3.29c.578 0 1.075.418 1.17 1.009l.157 1.074a.641.641 0 0 1-.633.742h-6.064a.641.641 0 0 1-.633-.74l.662-4.563-1.033 6.467a.641.641 0 0 1-.633.74z"/>
@@ -342,11 +484,11 @@ const submit = async () => {
                                 </div>
 
                                 <!-- COD Option -->
-                                <div class="rounded-md border" :class="form.paymentMethod === 'cod' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'">
-                                    <div class="p-4 flex items-center justify-between cursor-pointer" @click="form.paymentMethod = 'cod'">
+                                <div class="rounded-md border cursor-pointer transition" :class="form.paymentMethod === 'cod' ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300'">
+                                    <div class="p-4 flex items-center justify-between" @click="form.paymentMethod = 'cod'; selectedPaymentMethodId = null">
                                         <div class="flex items-center">
-                                            <input type="radio" name="payment-method" value="cod" v-model="form.paymentMethod" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
-                                            <label class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">Cash on Delivery</label>
+                                            <input type="radio" id="payment-cod" name="payment-method" value="cod" v-model="form.paymentMethod" @change="selectedPaymentMethodId = null" class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label for="payment-cod" class="ml-3 block text-sm font-medium text-gray-900 cursor-pointer">Cash on Delivery</label>
                                         </div>
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />

@@ -18,6 +18,62 @@ class StripePaymentService
     }
 
     /**
+     * Create a Stripe Payment Intent for an order using a saved payment method
+     */
+    public function createPaymentIntentWithSavedCard(Order $order, int $amountInCents, int $paymentMethodId, string $currency = 'usd'): ?Payment
+    {
+        try {
+            // Get the saved payment method
+            $paymentMethod = $order->user->paymentMethods()->findOrFail($paymentMethodId);
+
+            if (! $paymentMethod->stripe_payment_method_id) {
+                throw new \RuntimeException('Payment method does not have a valid Stripe ID');
+            }
+
+            // Create payment intent with saved payment method
+            $paymentIntentParams = [
+                'amount' => $amountInCents,
+                'currency' => $currency,
+                'payment_method' => $paymentMethod->stripe_payment_method_id,
+                'off_session' => true,
+                'confirm' => true,
+                'metadata' => [
+                    'order_id' => $order->id,
+                    'customer_id' => $order->user_id,
+                    'payment_method_id' => $paymentMethodId,
+                ],
+                'description' => "Order #{$order->id} for {$order->user->email}",
+            ];
+
+            // Only add customer if it exists
+            if ($order->user->stripe_customer_id) {
+                $paymentIntentParams['customer'] = $order->user->stripe_customer_id;
+            }
+
+            $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentParams);
+
+            // Create or update payment record
+            $payment = Payment::updateOrCreate(
+                ['stripe_payment_intent_id' => $paymentIntent->id],
+                [
+                    'order_id' => $order->id,
+                    'amount' => $amountInCents,
+                    'currency' => $currency,
+                    'status' => 'pending',
+                    'metadata' => json_encode($paymentIntent->metadata),
+                ]
+            );
+
+            Log::info("Payment Intent created with saved card: {$paymentIntent->id} for Order #{$order->id}");
+
+            return $payment;
+        } catch (ApiErrorException $e) {
+            Log::error("Stripe API Error (saved card): {$e->getMessage()}", ['order_id' => $order->id]);
+            throw $e;
+        }
+    }
+
+    /**
      * Create a Stripe Payment Intent for an order
      */
     public function createPaymentIntent(Order $order, int $amountInCents, string $currency = 'usd'): ?Payment

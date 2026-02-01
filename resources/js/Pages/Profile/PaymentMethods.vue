@@ -1,65 +1,141 @@
 <script setup>
 import ProfileLayout from '@/Layouts/ProfileLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import Modal from '@/Components/Modal.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import Checkbox from '@/Components/Checkbox.vue';
+import { ref, onMounted } from 'vue';
+import { loadStripe } from '@stripe/stripe-js';
 
 const props = defineProps({
     paymentMethods: Array,
+    stripePublicKey: String,
 });
 
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const stripe = ref(null);
+const cardElement = ref(null);
+const stripeElements = ref(null);
+const stripeError = ref('');
+const isLoadingStripe = ref(false);
 
 const form = useForm({
-    type: 'visa',
-    last4: '',
-    holder_name: '',
-    expiry_date: '',
-    is_default: false,
+    stripe_payment_method_id: '',
     label: 'Personal',
+    is_default: false,
 });
 
-const openAddModal = () => {
+const initializeStripe = async () => {
+    try {
+        isLoadingStripe.value = true;
+        stripe.value = await loadStripe(props.stripePublicKey);
+        
+        if (stripe.value) {
+            stripeElements.value = stripe.value.elements();
+            
+            cardElement.value = stripeElements.value.create('card', {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#1f2937',
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        '::placeholder': {
+                            color: '#9ca3af',
+                        },
+                    },
+                    invalid: {
+                        color: '#ef4444',
+                    },
+                },
+            });
+        }
+    } catch (error) {
+        console.error('Stripe initialization error:', error);
+        stripeError.value = 'Failed to load payment system.';
+    } finally {
+        isLoadingStripe.value = false;
+    }
+};
+
+const openAddModal = async () => {
     isEditing.value = false;
     form.reset();
     showModal.value = true;
+    stripeError.value = '';
+    
+    if (!stripe.value) {
+        await initializeStripe();
+    }
+    
+    setTimeout(() => {
+        const cardElementContainer = document.getElementById('card-element');
+        if (cardElementContainer && cardElement.value) {
+            try {
+                cardElement.value.unmount();
+            } catch (e) {
+                // Already unmounted
+            }
+            
+            cardElement.value.mount('#card-element');
+            
+            cardElement.value.on('change', (event) => {
+                stripeError.value = event.error ? event.error.message : '';
+            });
+        }
+    }, 100);
 };
 
 const openEditModal = (method) => {
     isEditing.value = true;
     editingId.value = method.id;
-    form.type = method.type;
-    form.last4 = method.last4;
-    form.holder_name = method.holder;
-    form.expiry_date = method.expiry;
-    form.is_default = method.is_default;
     form.label = method.label || 'Personal';
+    form.is_default = method.is_default;
     showModal.value = true;
+    stripeError.value = '';
 };
 
 const closeModal = () => {
     showModal.value = false;
     form.reset();
     form.clearErrors();
+    stripeError.value = '';
 };
 
-const submit = () => {
+const submit = async () => {
+    stripeError.value = '';
+    
     if (isEditing.value) {
         form.put(route('payment-methods.update', editingId.value), {
             onSuccess: () => closeModal(),
         });
     } else {
-        form.post(route('payment-methods.store'), {
-            onSuccess: () => closeModal(),
-        });
+        if (!stripe.value || !cardElement.value) {
+            stripeError.value = 'Payment system not loaded.';
+            return;
+        }
+        
+        try {
+            const { paymentMethod, error } = await stripe.value.createPaymentMethod({
+                type: 'card',
+                card: cardElement.value,
+            });
+            
+            if (error) {
+                stripeError.value = error.message;
+                return;
+            }
+            
+            if (!paymentMethod) {
+                stripeError.value = 'Failed to create payment method.';
+                return;
+            }
+            
+            form.stripe_payment_method_id = paymentMethod.id;
+            form.post(route('payment-methods.store'), {
+                onSuccess: () => closeModal(),
+            });
+        } catch (error) {
+            stripeError.value = 'Payment processing failed: ' + error.message;
+        }
     }
 };
 
@@ -113,9 +189,10 @@ const deleteMethod = (id) => {
                             <span v-if="method.is_secondary" class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 uppercase">SECONDARY</span>
                         </div>
                         <div class="h-8 w-auto">
-                            <img v-if="method.type === 'mastercard'" src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="h-8" />
-                            <img v-else-if="method.type === 'visa'" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" class="h-8" />
-                            <span v-else class="text-xl font-bold uppercase text-gray-400">{{ method.type }}</span>
+                            <img v-if="method.brand === 'mastercard'" src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="h-8" />
+                            <img v-else-if="method.brand === 'visa'" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" class="h-8" />
+                            <img v-else-if="method.brand === 'amex'" src="https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg" alt="Amex" class="h-8" />
+                            <span v-else class="text-xl font-bold uppercase text-gray-400">{{ method.brand }}</span>
                         </div>
                     </div>
                     
@@ -185,99 +262,79 @@ const deleteMethod = (id) => {
         </div>
 
         <!-- Add/Edit Modal -->
-        <Modal :show="showModal" @close="closeModal">
-            <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900">
-                    {{ isEditing ? 'Edit Payment Method' : 'Add New Card' }}
-                </h2>
-                
-                <form @submit.prevent="submit" class="mt-6 space-y-6">
-                    <!-- Card Type -->
-                    <div>
-                        <InputLabel for="type" value="Card Type" />
-                        <select
-                            id="type"
-                            v-model="form.type"
-                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                        >
-                            <option value="visa">Visa</option>
-                            <option value="mastercard">Mastercard</option>
-                            <option value="amex">Amex</option>
-                        </select>
-                        <InputError :message="form.errors.type" class="mt-2" />
+        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="closeModal"></div>
+
+            <!-- Modal Panel -->
+            <div class="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 shadow-xl sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900">{{ isEditing ? 'Edit Payment Method' : 'Add New Card' }}</h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="submit">
+                    <!-- Show error if any -->
+                    <div v-if="stripeError" class="mb-6 rounded-md bg-red-50 border border-red-200 p-4">
+                        <p class="text-sm font-medium text-red-800">{{ stripeError }}</p>
                     </div>
 
-                    <!-- Card Number (Last 4) -->
-                    <div>
-                        <InputLabel for="last4" value="Last 4 Digits" />
-                        <TextInput
-                            id="last4"
-                            v-model="form.last4"
-                            type="text"
-                            class="mt-1 block w-full"
-                            placeholder="e.g. 4242"
-                            maxlength="4"
-                        />
-                        <InputError :message="form.errors.last4" class="mt-2" />
-                    </div>
-
-                    <!-- Card Holder -->
-                    <div>
-                        <InputLabel for="holder_name" value="Card Holder Name" />
-                        <TextInput
-                            id="holder_name"
-                            v-model="form.holder_name"
-                            type="text"
-                            class="mt-1 block w-full"
-                            placeholder="Name on card"
-                        />
-                        <InputError :message="form.errors.holder_name" class="mt-2" />
-                    </div>
-
-                    <!-- Expiry Date -->
-                    <div>
-                        <InputLabel for="expiry_date" value="Expiry Date" />
-                        <TextInput
-                            id="expiry_date"
-                            v-model="form.expiry_date"
-                            type="text"
-                            class="mt-1 block w-full"
-                            placeholder="MM/YY"
-                        />
-                        <InputError :message="form.errors.expiry_date" class="mt-2" />
+                    <!-- Stripe Card Element (only for add, not edit) -->
+                    <div v-if="!isEditing" class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Card Information</label>
+                        <div v-if="isLoadingStripe" class="flex items-center justify-center py-4 text-gray-500">
+                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading secure payment...
+                        </div>
+                        <div 
+                            id="card-element" 
+                            class="block w-full rounded-lg border border-gray-300 shadow-sm py-3 px-3 bg-white"
+                        ></div>
+                        <div class="mt-2 flex items-center text-xs text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-1">
+                                <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                            </svg>
+                            Your card information is encrypted and secure
+                        </div>
                     </div>
 
                     <!-- Label -->
-                    <div>
-                        <InputLabel for="label" value="Label" />
+                    <div class="mb-6">
+                        <label for="label" class="block text-sm font-medium text-gray-700 mb-2">Label</label>
                         <select
                             id="label"
                             v-model="form.label"
-                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         >
                             <option value="Personal">Personal</option>
                             <option value="Business">Business</option>
                             <option value="Secondary">Secondary</option>
                         </select>
-                        <InputError :message="form.errors.label" class="mt-2" />
                     </div>
 
                     <!-- Default Checkbox -->
-                    <div class="block">
+                    <div class="mb-6">
                         <label class="flex items-center">
-                            <Checkbox name="is_default" v-model:checked="form.is_default" />
+                            <input type="checkbox" v-model="form.is_default" class="h-4 w-4 rounded border-gray-300 text-blue-600" />
                             <span class="ms-2 text-sm text-gray-600">Set as default payment method</span>
                         </label>
                     </div>
 
-                    <div class="mt-6 flex justify-end gap-3">
-                        <SecondaryButton @click="closeModal">Cancel</SecondaryButton>
-                        <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                    <div class="flex items-center justify-end gap-3">
+                        <button type="button" @click="closeModal" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</button>
+                        <button type="submit" :disabled="form.processing || isLoadingStripe" class="rounded-lg border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50">
                             {{ isEditing ? 'Save Changes' : 'Add Card' }}
-                        </PrimaryButton>
+                        </button>
                     </div>
                 </form>
             </div>
-        </Modal>
+        </div>
     </ProfileLayout>
 </template>
