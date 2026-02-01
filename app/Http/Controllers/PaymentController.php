@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\PaymentSuccessful;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\StripePaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -174,6 +176,9 @@ class PaymentController extends Controller
             ]);
 
             $payment->order->update(['payment_status' => 'paid']);
+
+            // Send payment success email
+            Mail::to($payment->order->user->email)->send(new PaymentSuccessful($payment));
 
             Log::info("Payment succeeded via webhook: {$payment->id}");
         }

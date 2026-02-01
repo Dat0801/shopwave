@@ -24,7 +24,7 @@ class CheckoutTest extends TestCase
                 'quantity' => 1,
                 'image' => $product->image_path,
                 'size' => 'M',
-            ]
+            ],
         ];
 
         $response = $this->actingAs($user)
@@ -61,7 +61,7 @@ class CheckoutTest extends TestCase
                 'quantity' => 1,
                 'image' => $product->image_path,
                 'size' => 'M',
-            ]
+            ],
         ];
 
         $response = $this->actingAs($user)
@@ -91,7 +91,7 @@ class CheckoutTest extends TestCase
                 'quantity' => 1,
                 'image' => $product->image_path,
                 'size' => 'M',
-            ]
+            ],
         ];
 
         $response = $this->actingAs($user)
@@ -105,12 +105,13 @@ class CheckoutTest extends TestCase
                 'paymentMethod' => 'credit_card',
             ]);
 
-        $response->assertRedirect(route('orders.index'));
+        // Redirect to payment processing page
+        $response->assertRedirect();
+        $this->assertTrue(str_contains($response->headers->get('Location'), '/payment/'));
 
         $this->assertDatabaseHas('orders', [
             'user_id' => $user->id,
             'payment_method' => 'credit_card',
-            'payment_status' => 'paid', // As per our logic in OrderService
         ]);
     }
 }

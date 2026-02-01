@@ -64,11 +64,15 @@ class SettingsServiceProvider extends ServiceProvider
         }
     }
 
-    private function overrideMailConfig($key, $value)
+    private function overrideMailConfig($key, $value): void
     {
+        if ($value === null || $value === '') {
+            return;
+        }
+
         // Map db keys (mail_host) to config keys (mail.mailers.smtp.host)
         // Assuming we are overriding the default SMTP mailer or the one specified in mail_mailer
-        
+
         switch ($key) {
             case 'mail_mailer':
                 Config::set('mail.default', $value);

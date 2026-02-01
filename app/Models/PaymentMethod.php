@@ -9,6 +9,11 @@ class PaymentMethod extends Model
 {
     protected $fillable = [
         'user_id',
+        'stripe_payment_method_id',
+        'stripe_card_brand',
+        'stripe_card_last4',
+        'stripe_card_exp_month',
+        'stripe_card_exp_year',
         'type',
         'last4',
         'holder_name',
