@@ -19,27 +19,38 @@ Shopwave is a modern, full-featured e-commerce application built with **Laravel 
 ## ✨ Features
 
 ### 🛍️ Customer Storefront
-- **Modern UI/UX:** Responsive design with a clean, user-friendly interface.
-- **Home Page:** Dynamic hero slider, trending products, and category highlights.
-- **Product Catalog:** Browse products by category, view details, and filter options.
-- **Shopping Cart:** Real-time cart management.
-- **Checkout:** Streamlined checkout process with **Stripe payment integration** and shipping address management.
-- **Payment:** Secure Stripe payment processing with PCI-compliant card elements.
-- **User Account:** Order history, profile management, and saved addresses.
-- **Reviews:** Product review and rating system.
+- **Home & Shop:** Landing page, product listing, and product detail pages.
+- **Cart & Coupons:** Add/update/remove items and apply coupon codes.
+- **Checkout & Payments:** Stripe payment intent flow and webhook handling.
+- **Orders:** Order history, order detail, and cancel requests.
+- **Account:** Profile management, saved addresses, and payment methods.
+- **Wishlist:** Save products and move all wishlist items to cart.
+- **Reviews:** Authenticated product reviews.
+- **Blog:** Blog listing and detail pages.
+- **Comments:** Comment on supported content types.
+- **Contact:** Contact form submission.
+- **Notifications:** Inbox with unread filter, mark read, and delete.
+- **Follow:** Follow and unfollow users.
+
+### 🔐 Authentication
+- **Email/Password:** Registration, login, logout, and email verification.
+- **Password Reset:** Forgot-password and reset-password flows.
+- **Google OAuth:** Sign in with Google.
 
 ### 🛠️ Admin Console
-- **Dashboard:** At-a-glance statistics and charts.
-- **Product Management:** Create, edit, and organize products with variants.
-- **Category Management:** Hierarchical category tree with drag-and-drop sorting.
-- **Order Management:** View and process customer orders.
-- **Marketing:**
-  - **Banner Management:** Manage homepage carousels and promotional banners.
-  - **Coupons:** Create and manage discount codes with usage limits.
-- **CMS:**
-  - **Pages:** Manage "About Us", "Contact Us" and other static content.
-  - **Navigation:** Drag-and-drop menu builder for header and footer.
-- **System Settings:** Configure site name, currency, timezone, and contact info.
+- **Dashboard:** Admin overview and notifications.
+- **Products:** Create, update, and delete products.
+- **Categories:** Manage categories and bulk status updates.
+- **Banners:** Manage homepage banners and reorder.
+- **Orders:** View and update order statuses.
+- **Customers:** Customer listing.
+- **Coupons:** Create and manage discount codes.
+- **Reviews:** Moderation actions.
+- **Contacts:** View, update status, and delete contact messages.
+- **Settings:** Site settings management.
+- **Blog & Categories:** Manage blog posts and blog categories.
+- **Pages:** Manage static pages.
+- **Navigation:** Build and reorder navigation menus.
 
 ## 🛠️ Installation
 
